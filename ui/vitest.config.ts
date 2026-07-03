@@ -23,6 +23,14 @@ const workspaceSourceAliases = [
     replacement: path.resolve(repoRoot, "src/plugin-sdk/test-fixtures.ts"),
   },
   {
+    find: /^@openclaw\/agent-spec\/(.+)$/u,
+    replacement: path.resolve(repoRoot, "packages/agent-spec/src/$1"),
+  },
+  {
+    find: "@openclaw/agent-spec",
+    replacement: path.resolve(repoRoot, "packages/agent-spec/src/index.ts"),
+  },
+  {
     find: /^@openclaw\/model-catalog-core\/(.+)$/u,
     replacement: path.resolve(repoRoot, "packages/model-catalog-core/src/$1.ts"),
   },
@@ -64,6 +72,19 @@ const nodeDrivenBrowserLayoutTests = [
   "src/ui/chat/chat-responsive.browser.test.ts",
   "src/ui/form-controls.browser.test.ts",
   "src/ui/views/sessions.browser.test.ts",
+] as const;
+// Files that vi.mock shared modules (markdown, icons, chat views). Under
+// isolate:false the worker module registry is shared, so whichever file loads
+// a module first wins: mocks leak into later files and cached real modules
+// defeat later mocks, both order-dependent. These run in their own isolated
+// project so mock state can never cross test files.
+const moduleMockingUnitTests = [
+  "src/ui/app-chat.test.ts",
+  "src/ui/app-render.assistant-avatar.test.ts",
+  "src/ui/chat/grouped-render.test.ts",
+  "src/ui/chat/run-controls.test.ts",
+  "src/ui/realtime-talk.test.ts",
+  "src/ui/views/chat.test.ts",
 ] as const;
 const chromiumExecutableOverrideEnvKey = "PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH";
 const systemChromiumExecutableCandidates = [
@@ -114,7 +135,28 @@ export default defineConfig({
           deps: jsdomOptimizedDeps,
           name: "unit",
           include: ["src/**/*.test.ts"],
-          exclude: ["src/**/*.browser.test.ts", "src/**/*.e2e.test.ts", "src/**/*.node.test.ts"],
+          exclude: [
+            "src/**/*.browser.test.ts",
+            "src/**/*.e2e.test.ts",
+            "src/**/*.node.test.ts",
+            ...moduleMockingUnitTests,
+          ],
+          environment: "jsdom",
+          setupFiles: ["./src/test-helpers/lit-warnings.setup.ts"],
+        },
+      }),
+      defineProject({
+        resolve: {
+          alias: workspaceSourceAliases,
+        },
+        test: {
+          deps: jsdomOptimizedDeps,
+          name: "unit-mocked",
+          include: [...moduleMockingUnitTests],
+          // Deliberately isolated (unlike sharedUiTestConfig): see
+          // moduleMockingUnitTests above.
+          isolate: true,
+          pool: resolveDefaultVitestPool(),
           environment: "jsdom",
           setupFiles: ["./src/test-helpers/lit-warnings.setup.ts"],
         },

@@ -767,7 +767,11 @@ export function syncUrlWithTab(host: SettingsHost, tab: Tab, replace: boolean) {
     url.searchParams.delete("session");
   }
 
-  if (currentPath !== targetPath) {
+  // /agent-preview/:agentId is a prefix route; rewriting to the bare tab path
+  // would drop the agent id from a preview deep link.
+  const keepsAgentPreviewSubpath =
+    tab === "agentPreview" && currentPath.startsWith(`${targetPath}/`);
+  if (currentPath !== targetPath && !keepsAgentPreviewSubpath) {
     url.pathname = targetPath;
   }
 

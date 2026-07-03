@@ -393,6 +393,7 @@ export const fa: TranslationMap = {
     builtIn: "داخلی",
   },
   nav: {
+    builder: "Builder",
     chat: "چت",
     control: "کنترل",
     agent: "عامل",
@@ -402,6 +403,8 @@ export const fa: TranslationMap = {
     resize: "تغییر اندازه نوار کناری",
   },
   tabs: {
+    agentBuilder: "Agent Builder",
+    agentPreview: "Agent Preview",
     agents: "عامل‌ها",
     activity: "فعالیت",
     overview: "نمای کلی",
@@ -427,6 +430,8 @@ export const fa: TranslationMap = {
     dreams: "رؤیاپردازی",
   },
   subtitles: {
+    agentBuilder: "Describe, validate, and deploy a Kagenti agent.",
+    agentPreview: "Chat with the deployed agent runtime.",
     agents: "فضاهای کاری، ابزارها، هویت‌ها.",
     activity: "خلاصه‌های فعالیت ابزار در مرورگر محلی.",
     overview: "وضعیت، نقاط ورود، سلامت.",

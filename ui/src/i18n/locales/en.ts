@@ -390,6 +390,7 @@ export const en: TranslationMap = {
     builtIn: "Built-in",
   },
   nav: {
+    builder: "Builder",
     chat: "Chat",
     control: "Control",
     agent: "Agent",
@@ -399,6 +400,8 @@ export const en: TranslationMap = {
     resize: "Resize sidebar",
   },
   tabs: {
+    agentBuilder: "Agent Builder",
+    agentPreview: "Agent Preview",
     agents: "Agents",
     activity: "Activity",
     overview: "Overview",
@@ -424,6 +427,8 @@ export const en: TranslationMap = {
     dreams: "Dreaming",
   },
   subtitles: {
+    agentBuilder: "Describe, validate, and deploy a Kagenti agent.",
+    agentPreview: "Chat with the deployed agent runtime.",
     agents: "Workspaces, tools, identities.",
     activity: "Browser-local tool activity summaries.",
     overview: "Status, entry points, health.",

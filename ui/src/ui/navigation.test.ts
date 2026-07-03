@@ -4,10 +4,12 @@ import {
   TAB_GROUPS,
   SETTINGS_TABS,
   iconForTab,
+  agentIdFromAgentPreviewPath,
   inferBasePathFromPathname,
   isSettingsTab,
   normalizeBasePath,
   normalizePath,
+  pathForAgentPreview,
   pathForTab,
   subtitleForTab,
   tabFromPath,
@@ -28,6 +30,8 @@ const leadingSlashNormalizerCases = [
 describe("iconForTab", () => {
   it("returns stable icons for every tab", () => {
     expect(Object.fromEntries(ALL_TABS.map((tab) => [tab, iconForTab(tab)]))).toEqual({
+      agentBuilder: "brain",
+      agentPreview: "messageSquare",
       chat: "messageSquare",
       overview: "barChart",
       activity: "activity",
@@ -64,6 +68,8 @@ describe("iconForTab", () => {
 describe("titleForTab", () => {
   it("returns expected titles for every tab", () => {
     expect(Object.fromEntries(ALL_TABS.map((tab) => [tab, titleForTab(tab)]))).toEqual({
+      agentBuilder: "Agent Builder",
+      agentPreview: "Agent Preview",
       chat: "Chat",
       overview: "Overview",
       activity: "Activity",
@@ -94,6 +100,8 @@ describe("titleForTab", () => {
 describe("subtitleForTab", () => {
   it("returns expected subtitles for every tab", () => {
     expect(Object.fromEntries(ALL_TABS.map((tab) => [tab, subtitleForTab(tab)]))).toEqual({
+      agentBuilder: "Describe, validate, and deploy a Kagenti agent.",
+      agentPreview: "Chat with the deployed agent runtime.",
       chat: "Gateway chat for quick interventions.",
       overview: "Status, entry points, health.",
       activity: "Browser-local tool activity summaries.",
@@ -194,6 +202,13 @@ describe("tabFromPath", () => {
     expect(tabFromPath("/unknown")).toBeNull();
   });
 
+  it("resolves agent builder and preview routes", () => {
+    expect(tabFromPath("/agent-builder")).toBe("agentBuilder");
+    expect(tabFromPath("/agent-preview")).toBe("agentPreview");
+    expect(tabFromPath("/agent-preview/support-agent")).toBe("agentPreview");
+    expect(tabFromPath("/ui/agent-preview/support-agent", "/ui")).toBe("agentPreview");
+  });
+
   it("is case-insensitive", () => {
     expect(tabFromPath("/CHAT")).toBe("chat");
     expect(tabFromPath("/Overview")).toBe("overview");
@@ -217,6 +232,11 @@ describe("inferBasePathFromPathname", () => {
     expect(inferBasePathFromPathname("/apps/openclaw/sessions")).toBe("/apps/openclaw");
   });
 
+  it("infers base path for agent preview deep links", () => {
+    expect(inferBasePathFromPathname("/agent-preview/support-agent")).toBe("");
+    expect(inferBasePathFromPathname("/ui/agent-preview/support-agent")).toBe("/ui");
+  });
+
   it("handles index.html suffix", () => {
     expect(inferBasePathFromPathname("/index.html")).toBe("");
     expect(inferBasePathFromPathname("/ui/index.html")).toBe("/ui");
@@ -225,7 +245,13 @@ describe("inferBasePathFromPathname", () => {
 
 describe("TAB_GROUPS", () => {
   it("contains all expected groups", () => {
-    expect(TAB_GROUPS.map((g) => g.label)).toEqual(["chat", "control", "agent", "settings"]);
+    expect(TAB_GROUPS.map((g) => g.label)).toEqual([
+      "builder",
+      "chat",
+      "control",
+      "agent",
+      "settings",
+    ]);
   });
 
   it("all tabs are unique", () => {
@@ -250,5 +276,26 @@ describe("TAB_GROUPS", () => {
       "logs",
     ]);
     expect(SETTINGS_TABS.every((tab) => isSettingsTab(tab))).toBe(true);
+  });
+});
+
+describe("agent preview deep links", () => {
+  it("builds preview paths from agent ids", () => {
+    expect(pathForAgentPreview("support-agent")).toBe("/agent-preview/support-agent");
+    expect(pathForAgentPreview("support-agent", "/ui")).toBe("/ui/agent-preview/support-agent");
+  });
+
+  it("extracts the agent id from preview paths", () => {
+    expect(agentIdFromAgentPreviewPath("/agent-preview/support-agent")).toBe("support-agent");
+    expect(agentIdFromAgentPreviewPath("/ui/agent-preview/support-agent", "/ui")).toBe(
+      "support-agent",
+    );
+  });
+
+  it("returns null when no agent id is present", () => {
+    expect(agentIdFromAgentPreviewPath("/agent-preview")).toBeNull();
+    expect(agentIdFromAgentPreviewPath("/agent-preview/")).toBeNull();
+    expect(agentIdFromAgentPreviewPath("/agent-preview/a/b")).toBeNull();
+    expect(agentIdFromAgentPreviewPath("/chat")).toBeNull();
   });
 });

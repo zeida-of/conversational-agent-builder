@@ -163,6 +163,7 @@ import { formatRelativeTimestamp } from "./format.ts";
 import { icons } from "./icons.ts";
 import { createLazyView, renderLazyView } from "./lazy-view.ts";
 import {
+  agentIdFromAgentPreviewPath,
   iconForTab,
   isSettingsTab,
   normalizeBasePath,
@@ -197,6 +198,8 @@ import type {
   SessionWorkspaceGetResult,
   SessionWorkspaceListResult,
 } from "./types.ts";
+import { renderAgentBuilder } from "./views/agent-builder.ts";
+import { renderAgentPreview } from "./views/agent-preview.ts";
 import { isRenderableControlUiAvatarUrl } from "./views/agents-utils.ts";
 import { agentLogoUrl } from "./views/agents-utils.ts";
 import {
@@ -4175,6 +4178,19 @@ export function renderApp(state: AppViewState) {
                 void repairDreamingArtifacts(state);
               },
               onRequestUpdate: requestHostUpdate,
+            })
+          : nothing}
+        ${state.tab === "agentBuilder"
+          ? renderAgentBuilder({ basePath: state.basePath, requestUpdate: requestHostUpdate })
+          : nothing}
+        ${state.tab === "agentPreview"
+          ? renderAgentPreview({
+              agentId:
+                typeof window === "undefined"
+                  ? null
+                  : agentIdFromAgentPreviewPath(window.location.pathname, state.basePath),
+              basePath: state.basePath,
+              requestUpdate: requestHostUpdate,
             })
           : nothing}
       </main>

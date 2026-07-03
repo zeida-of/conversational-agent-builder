@@ -395,6 +395,7 @@ export const ja_JP: TranslationMap = {
     builtIn: "組み込み",
   },
   nav: {
+    builder: "Builder",
     chat: "チャット",
     control: "コントロール",
     agent: "エージェント",
@@ -404,6 +405,8 @@ export const ja_JP: TranslationMap = {
     resize: "サイドバーのサイズを変更",
   },
   tabs: {
+    agentBuilder: "Agent Builder",
+    agentPreview: "Agent Preview",
     agents: "エージェント",
     activity: "アクティビティ",
     overview: "概要",
@@ -429,6 +432,8 @@ export const ja_JP: TranslationMap = {
     dreams: "Dreaming",
   },
   subtitles: {
+    agentBuilder: "Describe, validate, and deploy a Kagenti agent.",
+    agentPreview: "Chat with the deployed agent runtime.",
     agents: "ワークスペース、ツール、ID。",
     activity: "ブラウザー内のツールアクティビティ概要。",
     overview: "ステータス、エントリーポイント、健全性。",

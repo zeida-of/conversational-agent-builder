@@ -391,6 +391,7 @@ export const ko: TranslationMap = {
     builtIn: "내장",
   },
   nav: {
+    builder: "Builder",
     chat: "채팅",
     control: "Control",
     agent: "에이전트",
@@ -400,6 +401,8 @@ export const ko: TranslationMap = {
     resize: "사이드바 크기 조절",
   },
   tabs: {
+    agentBuilder: "Agent Builder",
+    agentPreview: "Agent Preview",
     agents: "에이전트",
     activity: "활동",
     overview: "개요",
@@ -425,6 +428,8 @@ export const ko: TranslationMap = {
     dreams: "드리밍",
   },
   subtitles: {
+    agentBuilder: "Describe, validate, and deploy a Kagenti agent.",
+    agentPreview: "Chat with the deployed agent runtime.",
     agents: "워크스페이스, 도구, 정체성.",
     activity: "브라우저 로컬 도구 활동 요약입니다.",
     overview: "상태, 진입점, 상태 정보.",

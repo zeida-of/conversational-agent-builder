@@ -392,6 +392,7 @@ export const vi: TranslationMap = {
     builtIn: "Tích hợp sẵn",
   },
   nav: {
+    builder: "Builder",
     chat: "Trò chuyện",
     control: "Điều khiển",
     agent: "Agent",
@@ -401,6 +402,8 @@ export const vi: TranslationMap = {
     resize: "Thay đổi kích thước thanh bên",
   },
   tabs: {
+    agentBuilder: "Agent Builder",
+    agentPreview: "Agent Preview",
     agents: "Agent",
     activity: "Hoạt động",
     overview: "Tổng quan",
@@ -426,6 +429,8 @@ export const vi: TranslationMap = {
     dreams: "Đang mơ",
   },
   subtitles: {
+    agentBuilder: "Describe, validate, and deploy a Kagenti agent.",
+    agentPreview: "Chat with the deployed agent runtime.",
     agents: "Không gian làm việc, công cụ, danh tính.",
     activity: "Tóm tắt hoạt động công cụ cục bộ trên trình duyệt.",
     overview: "Trạng thái, điểm vào, tình trạng.",

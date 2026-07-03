@@ -392,6 +392,7 @@ export const id: TranslationMap = {
     builtIn: "Bawaan",
   },
   nav: {
+    builder: "Builder",
     chat: "Chat",
     control: "Kontrol",
     agent: "Agen",
@@ -401,6 +402,8 @@ export const id: TranslationMap = {
     resize: "Ubah ukuran bilah samping",
   },
   tabs: {
+    agentBuilder: "Agent Builder",
+    agentPreview: "Agent Preview",
     agents: "Agen",
     activity: "Aktivitas",
     overview: "Ikhtisar",
@@ -426,6 +429,8 @@ export const id: TranslationMap = {
     dreams: "Mimpi",
   },
   subtitles: {
+    agentBuilder: "Describe, validate, and deploy a Kagenti agent.",
+    agentPreview: "Chat with the deployed agent runtime.",
     agents: "Ruang kerja, alat, identitas.",
     activity: "Ringkasan aktivitas alat lokal browser.",
     overview: "Status, titik masuk, kesehatan.",

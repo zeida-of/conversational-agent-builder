@@ -4,6 +4,7 @@ import type { IconName } from "./icons.js";
 import { normalizeLowercaseStringOrEmpty } from "./string-coerce.ts";
 
 export const TAB_GROUPS = [
+  { label: "builder", tabs: ["agentBuilder", "agentPreview"] },
   { label: "chat", tabs: ["chat"] },
   {
     label: "control",
@@ -17,6 +18,8 @@ export const TAB_GROUPS = [
 ] as const;
 
 export type Tab =
+  | "agentBuilder"
+  | "agentPreview"
   | "agents"
   | "activity"
   | "overview"
@@ -55,6 +58,8 @@ export const SETTINGS_TABS = [
 ] as const satisfies readonly Tab[];
 
 const TAB_PATHS: Record<Tab, string> = {
+  agentBuilder: "/agent-builder",
+  agentPreview: "/agent-preview",
   agents: "/agents",
   activity: "/activity",
   overview: "/overview",
@@ -88,6 +93,18 @@ const PATH_TO_TAB = new Map<string, Tab>([
   ...Object.entries(TAB_PATHS).map(([tab, path]) => [path, tab as Tab] as const),
   ...Object.entries(PATH_ALIASES),
 ]);
+
+// /agent-preview/:agentId is the only parameterized route; exact-map lookups
+// need this prefix check so preview deep links resolve to the tab.
+const AGENT_PREVIEW_PREFIX = `${TAB_PATHS.agentPreview}/`;
+
+function tabForNormalizedPath(normalized: string): Tab | null {
+  const exact = PATH_TO_TAB.get(normalized);
+  if (exact) {
+    return exact;
+  }
+  return normalized.startsWith(AGENT_PREVIEW_PREFIX) ? "agentPreview" : null;
+}
 
 export function normalizeBasePath(basePath: string): string {
   if (!basePath) {
@@ -138,6 +155,17 @@ export function isTabInGroup(group: (typeof TAB_GROUPS)[number], tab: Tab): bool
 }
 
 export function tabFromPath(pathname: string, basePath = ""): Tab | null {
+  let normalized = stripBasePath(pathname, basePath);
+  if (normalized.endsWith("/index.html")) {
+    normalized = "/";
+  }
+  if (normalized === "/") {
+    return "chat";
+  }
+  return tabForNormalizedPath(normalized);
+}
+
+function stripBasePath(pathname: string, basePath: string): string {
   const base = normalizeBasePath(basePath);
   let path = pathname || "/";
   if (base) {
@@ -147,14 +175,20 @@ export function tabFromPath(pathname: string, basePath = ""): Tab | null {
       path = path.slice(base.length);
     }
   }
-  let normalized = normalizeLowercaseStringOrEmpty(normalizePath(path));
-  if (normalized.endsWith("/index.html")) {
-    normalized = "/";
+  return normalizeLowercaseStringOrEmpty(normalizePath(path));
+}
+
+export function agentIdFromAgentPreviewPath(pathname: string, basePath = ""): string | null {
+  const normalized = stripBasePath(pathname, basePath);
+  if (!normalized.startsWith(AGENT_PREVIEW_PREFIX)) {
+    return null;
   }
-  if (normalized === "/") {
-    return "chat";
-  }
-  return PATH_TO_TAB.get(normalized) ?? null;
+  const agentId = normalized.slice(AGENT_PREVIEW_PREFIX.length);
+  return agentId && !agentId.includes("/") ? agentId : null;
+}
+
+export function pathForAgentPreview(agentId: string, basePath = ""): string {
+  return `${pathForTab("agentPreview", basePath)}/${encodeURIComponent(agentId)}`;
 }
 
 export function inferBasePathFromPathname(pathname: string): string {
@@ -171,7 +205,7 @@ export function inferBasePathFromPathname(pathname: string): string {
   }
   for (let i = 0; i < segments.length; i++) {
     const candidate = normalizeLowercaseStringOrEmpty(`/${segments.slice(i).join("/")}`);
-    if (PATH_TO_TAB.has(candidate)) {
+    if (tabForNormalizedPath(candidate) !== null) {
       const prefix = segments.slice(0, i);
       return prefix.length ? `/${prefix.join("/")}` : "";
     }
@@ -181,6 +215,10 @@ export function inferBasePathFromPathname(pathname: string): string {
 
 export function iconForTab(tab: Tab): IconName {
   switch (tab) {
+    case "agentBuilder":
+      return "brain";
+    case "agentPreview":
+      return "messageSquare";
     case "agents":
       return "folder";
     case "chat":

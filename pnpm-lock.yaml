@@ -1829,6 +1829,12 @@ importers:
         specifier: 1.1.39
         version: 1.1.39
 
+  packages/agent-spec:
+    dependencies:
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
+
   packages/gateway-client:
     dependencies:
       '@openclaw/gateway-protocol':
@@ -1930,6 +1936,9 @@ importers:
       '@noble/ed25519':
         specifier: 3.1.0
         version: 3.1.0
+      '@openclaw/agent-spec':
+        specifier: workspace:*
+        version: link:../packages/agent-spec
       '@openclaw/media-core':
         specifier: workspace:*
         version: link:../packages/media-core

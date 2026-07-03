@@ -393,6 +393,7 @@ export const pl: TranslationMap = {
     builtIn: "Wbudowane",
   },
   nav: {
+    builder: "Builder",
     chat: "Czat",
     control: "Sterowanie",
     agent: "Agent",
@@ -402,6 +403,8 @@ export const pl: TranslationMap = {
     resize: "Zmień rozmiar paska bocznego",
   },
   tabs: {
+    agentBuilder: "Agent Builder",
+    agentPreview: "Agent Preview",
     agents: "Agenci",
     activity: "Aktywność",
     overview: "Przegląd",
@@ -427,6 +430,8 @@ export const pl: TranslationMap = {
     dreams: "Sny",
   },
   subtitles: {
+    agentBuilder: "Describe, validate, and deploy a Kagenti agent.",
+    agentPreview: "Chat with the deployed agent runtime.",
     agents: "Obszary robocze, narzędzia, tożsamości.",
     activity: "Podsumowania aktywności narzędzi lokalne dla przeglądarki.",
     overview: "Status, punkty dostępu, stan.",

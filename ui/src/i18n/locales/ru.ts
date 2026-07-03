@@ -394,6 +394,7 @@ export const ru: TranslationMap = {
     builtIn: "Встроенный",
   },
   nav: {
+    builder: "Builder",
     chat: "Чат",
     control: "Управление",
     agent: "Агент",
@@ -403,6 +404,8 @@ export const ru: TranslationMap = {
     resize: "Изменить размер боковой панели",
   },
   tabs: {
+    agentBuilder: "Agent Builder",
+    agentPreview: "Agent Preview",
     agents: "Агенты",
     activity: "Активность",
     overview: "Обзор",
@@ -428,6 +431,8 @@ export const ru: TranslationMap = {
     dreams: "Сновидения",
   },
   subtitles: {
+    agentBuilder: "Describe, validate, and deploy a Kagenti agent.",
+    agentPreview: "Chat with the deployed agent runtime.",
     agents: "Рабочие пространства, инструменты, идентификаторы.",
     activity: "Сводки активности инструментов в локальном браузере.",
     overview: "Состояние, точки входа, работоспособность.",

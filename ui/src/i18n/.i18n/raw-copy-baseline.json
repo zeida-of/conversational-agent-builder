@@ -510,6 +510,13 @@
       "kind": "object-property",
       "name": "label",
       "path": "ui/src/ui/navigation.ts",
+      "text": "builder"
+    },
+    {
+      "count": 1,
+      "kind": "object-property",
+      "name": "label",
+      "path": "ui/src/ui/navigation.ts",
       "text": "chat"
     },
     {
@@ -525,6 +532,209 @@
       "name": "label",
       "path": "ui/src/ui/navigation.ts",
       "text": "settings"
+    },
+    {
+      "count": 1,
+      "kind": "object-property",
+      "name": "placeholder",
+      "path": "ui/src/ui/views/agent-builder.ts",
+      "text": "e.g. Build a support agent that answers questions from our docs"
+    },
+    {
+      "count": 1,
+      "kind": "object-property",
+      "name": "subtitle",
+      "path": "ui/src/ui/views/agent-builder.ts",
+      "text": "Describe the agent you want; the builder edits the draft spec."
+    },
+    {
+      "count": 1,
+      "kind": "object-property",
+      "name": "title",
+      "path": "ui/src/ui/views/agent-builder.ts",
+      "text": "Builder chat"
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-chat-surface.ts",
+      "text": "Send"
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-chat-surface.ts",
+      "text": "Sending…"
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-preview.ts",
+      "text": "/agent-preview/&lt;agent-id&gt;"
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-preview.ts",
+      "text": "Agent ID"
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-preview.ts",
+      "text": "Agent preview"
+    },
+    {
+      "count": 2,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-preview.ts",
+      "text": "Back to builder"
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-preview.ts",
+      "text": "Deployed version"
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-preview.ts",
+      "text": "Deployment"
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-preview.ts",
+      "text": "No agent selected."
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-preview.ts",
+      "text": "not connected"
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-preview.ts",
+      "text": "Open a preview from the builder page, or use a link of the form"
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-preview.ts",
+      "text": "Reset conversation"
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-preview.ts",
+      "text": "Runtime state of the previewed agent."
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-preview.ts",
+      "text": "Runtime status"
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-preview.ts",
+      "text": "Unknown — deployment status API not wired yet."
+    },
+    {
+      "count": 1,
+      "kind": "object-property",
+      "name": "placeholder",
+      "path": "ui/src/ui/views/agent-preview.ts",
+      "text": "Ask the deployed agent something"
+    },
+    {
+      "count": 1,
+      "kind": "object-property",
+      "name": "subtitle",
+      "path": "ui/src/ui/views/agent-preview.ts",
+      "text": "Messages go to the deployed Kagenti agent."
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-spec-panel.ts",
+      "text": "Canonical AgentSpec edited by the builder."
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-spec-panel.ts",
+      "text": "Deployment"
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-spec-panel.ts",
+      "text": "Draft agent"
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-spec-panel.ts",
+      "text": "No tools attached."
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-spec-panel.ts",
+      "text": "Open preview chat"
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-spec-panel.ts",
+      "text": "Spec is valid."
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-spec-panel.ts",
+      "text": "System prompt"
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-spec-panel.ts",
+      "text": "Tools"
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-spec-panel.ts",
+      "text": "Validation"
     },
     {
       "count": 1,

@@ -389,6 +389,7 @@ export const zh_TW: TranslationMap = {
     builtIn: "內建",
   },
   nav: {
+    builder: "Builder",
     chat: "聊天",
     control: "控制",
     agent: "代理",
@@ -398,6 +399,8 @@ export const zh_TW: TranslationMap = {
     resize: "調整側邊欄大小",
   },
   tabs: {
+    agentBuilder: "Agent Builder",
+    agentPreview: "Agent Preview",
     agents: "代理",
     activity: "活動",
     overview: "概覽",
@@ -423,6 +426,8 @@ export const zh_TW: TranslationMap = {
     dreams: "夢境",
   },
   subtitles: {
+    agentBuilder: "Describe, validate, and deploy a Kagenti agent.",
+    agentPreview: "Chat with the deployed agent runtime.",
     agents: "工作區、工具、身份。",
     activity: "瀏覽器本機工具活動摘要。",
     overview: "狀態、入口點、健康。",

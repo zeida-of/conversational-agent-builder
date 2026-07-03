@@ -393,6 +393,7 @@ export const uk: TranslationMap = {
     builtIn: "Вбудований",
   },
   nav: {
+    builder: "Builder",
     chat: "Чат",
     control: "Керування",
     agent: "Агент",
@@ -402,6 +403,8 @@ export const uk: TranslationMap = {
     resize: "Змінити розмір бічної панелі",
   },
   tabs: {
+    agentBuilder: "Agent Builder",
+    agentPreview: "Agent Preview",
     agents: "Агенти",
     activity: "Активність",
     overview: "Огляд",
@@ -427,6 +430,8 @@ export const uk: TranslationMap = {
     dreams: "Сни",
   },
   subtitles: {
+    agentBuilder: "Describe, validate, and deploy a Kagenti agent.",
+    agentPreview: "Chat with the deployed agent runtime.",
     agents: "Робочі простори, інструменти, ідентичності.",
     activity: "Підсумки активності інструментів, локальні для браузера.",
     overview: "Стан, точки входу, справність.",

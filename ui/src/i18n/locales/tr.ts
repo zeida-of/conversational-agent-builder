@@ -394,6 +394,7 @@ export const tr: TranslationMap = {
     builtIn: "Yerleşik",
   },
   nav: {
+    builder: "Builder",
     chat: "Sohbet",
     control: "Kontrol",
     agent: "Aracı",
@@ -403,6 +404,8 @@ export const tr: TranslationMap = {
     resize: "Kenar çubuğunu yeniden boyutlandır",
   },
   tabs: {
+    agentBuilder: "Agent Builder",
+    agentPreview: "Agent Preview",
     agents: "Aracılar",
     activity: "Etkinlik",
     overview: "Genel Bakış",
@@ -428,6 +431,8 @@ export const tr: TranslationMap = {
     dreams: "Düşler",
   },
   subtitles: {
+    agentBuilder: "Describe, validate, and deploy a Kagenti agent.",
+    agentPreview: "Chat with the deployed agent runtime.",
     agents: "Çalışma alanları, araçlar, kimlikler.",
     activity: "Tarayıcıya yerel araç etkinliği özetleri.",
     overview: "Durum, giriş noktaları, sağlık.",

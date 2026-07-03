@@ -392,6 +392,7 @@ export const hi: TranslationMap = {
     builtIn: "बिल्ट-इन",
   },
   nav: {
+    builder: "Builder",
     chat: "चैट",
     control: "नियंत्रण",
     agent: "एजेंट",
@@ -401,6 +402,8 @@ export const hi: TranslationMap = {
     resize: "साइडबार का आकार बदलें",
   },
   tabs: {
+    agentBuilder: "Agent Builder",
+    agentPreview: "Agent Preview",
     agents: "एजेंट",
     activity: "गतिविधि",
     overview: "अवलोकन",
@@ -426,6 +429,8 @@ export const hi: TranslationMap = {
     dreams: "ड्रीमिंग",
   },
   subtitles: {
+    agentBuilder: "Describe, validate, and deploy a Kagenti agent.",
+    agentPreview: "Chat with the deployed agent runtime.",
     agents: "वर्कस्पेस, टूल्स, पहचान।",
     activity: "ब्राउज़र-लोकल टूल गतिविधि सारांश।",
     overview: "स्थिति, एंट्री पॉइंट्स, हेल्थ।",

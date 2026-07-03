@@ -394,6 +394,7 @@ export const fr: TranslationMap = {
     builtIn: "Intégré",
   },
   nav: {
+    builder: "Builder",
     chat: "Chat",
     control: "Contrôle",
     agent: "Agent",
@@ -403,6 +404,8 @@ export const fr: TranslationMap = {
     resize: "Redimensionner la barre latérale",
   },
   tabs: {
+    agentBuilder: "Agent Builder",
+    agentPreview: "Agent Preview",
     agents: "Agents",
     activity: "Activité",
     overview: "Aperçu",
@@ -428,6 +431,8 @@ export const fr: TranslationMap = {
     dreams: "Rêves",
   },
   subtitles: {
+    agentBuilder: "Describe, validate, and deploy a Kagenti agent.",
+    agentPreview: "Chat with the deployed agent runtime.",
     agents: "Espaces de travail, outils, identités.",
     activity: "Résumés d’activité des outils locaux au navigateur.",
     overview: "Statut, points d’entrée, santé.",

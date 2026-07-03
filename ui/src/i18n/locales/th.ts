@@ -390,6 +390,7 @@ export const th: TranslationMap = {
     builtIn: "มีมาในระบบ",
   },
   nav: {
+    builder: "Builder",
     chat: "แชต",
     control: "ควบคุม",
     agent: "เอเจนต์",
@@ -399,6 +400,8 @@ export const th: TranslationMap = {
     resize: "ปรับขนาดแถบด้านข้าง",
   },
   tabs: {
+    agentBuilder: "Agent Builder",
+    agentPreview: "Agent Preview",
     agents: "เอเจนต์",
     activity: "กิจกรรม",
     overview: "ภาพรวม",
@@ -424,6 +427,8 @@ export const th: TranslationMap = {
     dreams: "การฝัน",
   },
   subtitles: {
+    agentBuilder: "Describe, validate, and deploy a Kagenti agent.",
+    agentPreview: "Chat with the deployed agent runtime.",
     agents: "เวิร์กสเปซ เครื่องมือ และข้อมูลประจำตัว",
     activity: "สรุปกิจกรรมของเครื่องมือภายในเบราว์เซอร์",
     overview: "สถานะ จุดเข้าใช้งาน และความพร้อมใช้งาน",

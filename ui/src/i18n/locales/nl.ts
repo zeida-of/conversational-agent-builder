@@ -394,6 +394,7 @@ export const nl: TranslationMap = {
     builtIn: "Ingebouwd",
   },
   nav: {
+    builder: "Builder",
     chat: "Chat",
     control: "Control",
     agent: "Agent",
@@ -403,6 +404,8 @@ export const nl: TranslationMap = {
     resize: "Zijbalkgrootte aanpassen",
   },
   tabs: {
+    agentBuilder: "Agent Builder",
+    agentPreview: "Agent Preview",
     agents: "Agents",
     activity: "Activiteit",
     overview: "Overzicht",
@@ -428,6 +431,8 @@ export const nl: TranslationMap = {
     dreams: "Dromen",
   },
   subtitles: {
+    agentBuilder: "Describe, validate, and deploy a Kagenti agent.",
+    agentPreview: "Chat with the deployed agent runtime.",
     agents: "Werkruimten, tools, identiteiten.",
     activity: "Browserlokale samenvattingen van toolactiviteit.",
     overview: "Status, toegangspunten, gezondheid.",

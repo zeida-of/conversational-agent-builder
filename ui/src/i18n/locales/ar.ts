@@ -391,6 +391,7 @@ export const ar: TranslationMap = {
     builtIn: "مدمج",
   },
   nav: {
+    builder: "Builder",
     chat: "الدردشة",
     control: "التحكم",
     agent: "الوكيل",
@@ -400,6 +401,8 @@ export const ar: TranslationMap = {
     resize: "تغيير حجم الشريط الجانبي",
   },
   tabs: {
+    agentBuilder: "Agent Builder",
+    agentPreview: "Agent Preview",
     agents: "الوكلاء",
     activity: "النشاط",
     overview: "نظرة عامة",
@@ -425,6 +428,8 @@ export const ar: TranslationMap = {
     dreams: "الحلم",
   },
   subtitles: {
+    agentBuilder: "Describe, validate, and deploy a Kagenti agent.",
+    agentPreview: "Chat with the deployed agent runtime.",
     agents: "مساحات العمل، والأدوات، والهويات.",
     activity: "ملخصات نشاط الأدوات المحلية في المتصفح.",
     overview: "الحالة، ونقاط الدخول، والصحة.",
