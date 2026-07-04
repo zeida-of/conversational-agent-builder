@@ -86,10 +86,16 @@ function freshRecord(overrides?: { id?: string; name?: string }): AgentBuilderDr
 function withValidation(record: AgentBuilderDraftRecord): AgentBuilderState {
   const validation = validateAgentSpec(record.draftSpec);
   // Reading re-parses through the schema so stored drafts from older spec
-  // versions pick up new defaulted fields before anything consumes them.
+  // versions pick up new defaulted fields before anything consumes them. The
+  // deployed snapshot gets the same treatment, otherwise a new defaulted field
+  // makes draft-vs-deployed comparisons report a phantom difference.
+  const deployedValidation = record.lastDeployedSpec
+    ? validateAgentSpec(record.lastDeployedSpec)
+    : undefined;
   return {
     ...record,
     draftSpec: validation.ok ? validation.spec : record.draftSpec,
+    ...(deployedValidation?.ok ? { lastDeployedSpec: deployedValidation.spec } : {}),
     validation,
   };
 }

@@ -100,7 +100,7 @@ describe("titleForTab", () => {
 describe("subtitleForTab", () => {
   it("returns expected subtitles for every tab", () => {
     expect(Object.fromEntries(ALL_TABS.map((tab) => [tab, subtitleForTab(tab)]))).toEqual({
-      agentBuilder: "Describe, validate, and deploy a Kagenti agent.",
+      agentBuilder: "Design, deploy, test, and improve your agent in one workspace.",
       agentPreview: "Chat with the deployed agent runtime.",
       chat: "Gateway chat for quick interventions.",
       overview: "Status, entry points, health.",

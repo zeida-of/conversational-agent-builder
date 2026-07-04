@@ -122,13 +122,17 @@ describe("agent-builder store", () => {
     }).register("active-draft", {
       version: 2,
       draftSpec: stale,
-      deploymentStatus: "draft",
+      // The deployed snapshot predates the field too; both must normalize or
+      // draft-vs-deployed comparisons report a phantom difference.
+      lastDeployedSpec: structuredClone(stale),
+      deploymentStatus: "running",
       createdAt: 0,
       updatedAt: 0,
     });
     const state = await createAgentBuilderStore(openKeyedStore).getState();
     expect(state.validation.ok).toBe(true);
     expect(state.draftSpec.agent.skills).toEqual([]);
+    expect(state.lastDeployedSpec?.agent.skills).toEqual([]);
   });
 });
 
