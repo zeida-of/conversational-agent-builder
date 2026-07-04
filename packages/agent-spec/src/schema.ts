@@ -35,6 +35,9 @@ export const agentSpecSchema = z.object({
       temperature: z.number().min(0).max(2).optional(),
     }),
     tools: z.array(agentSpecToolSchema).default([]),
+    // Knowledge packs are curated documents baked into the deployed agent's
+    // context; packRef must resolve against the builder's pack registry.
+    knowledge: z.array(z.object({ packRef: z.string().min(1) })).default([]),
     memory: z.object({ enabled: z.boolean() }).default({ enabled: false }),
     runtime: z.object({
       platform: z.literal("kagenti"),

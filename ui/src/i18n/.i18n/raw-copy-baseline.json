@@ -713,6 +713,20 @@
       "kind": "html-text",
       "name": "text",
       "path": "ui/src/ui/views/agent-spec-panel.ts",
+      "text": "Knowledge"
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-spec-panel.ts",
+      "text": "No knowledge packs attached."
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-spec-panel.ts",
       "text": "No tools attached."
     },
     {

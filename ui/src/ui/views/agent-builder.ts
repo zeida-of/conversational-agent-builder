@@ -36,6 +36,8 @@ type AgentBuilderViewState = {
   panel: AgentBuilderGatewayState | null;
   panelLoading: boolean;
   panelError: string | null;
+  deployBusy: boolean;
+  runtimeMessage: string | null;
 };
 
 let viewState: AgentBuilderViewState | null = null;
@@ -53,6 +55,8 @@ function ensureViewState(): AgentBuilderViewState {
     panel: null,
     panelLoading: false,
     panelError: null,
+    deployBusy: false,
+    runtimeMessage: null,
   };
   return viewState;
 }
@@ -149,11 +153,59 @@ export type AgentBuilderProps = {
   requestUpdate?: () => void;
 };
 
-function deploymentDetail(panel: AgentBuilderGatewayState): string {
+function deploymentDetail(state: AgentBuilderViewState, panel: AgentBuilderGatewayState): string {
+  if (state.runtimeMessage) {
+    return state.runtimeMessage;
+  }
   if (panel.deploymentStatus === "draft") {
-    return "Not deployed yet. Deployment lands in an upcoming milestone.";
+    return "Not deployed yet. Press Deploy when the draft is ready.";
   }
   return `Last update ${new Date(panel.updatedAt).toLocaleString()}.`;
+}
+
+type StatusResponse = AgentBuilderGatewayState & {
+  runtime?: { status: string; message: string };
+};
+
+async function pollDeploymentStatus(client: GatewayBrowserClient, requestUpdate?: () => void) {
+  const state = ensureViewState();
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    await new Promise((resolve) => {
+      setTimeout(resolve, 3000);
+    });
+    try {
+      const response = await client.request<StatusResponse>("agentBuilder.status", {});
+      state.panel = response;
+      state.runtimeMessage = response.runtime?.message ?? null;
+      requestUpdate?.();
+      if (response.deploymentStatus === "running" || response.deploymentStatus === "failed") {
+        break;
+      }
+    } catch (error) {
+      state.runtimeMessage = error instanceof Error ? error.message : String(error);
+      requestUpdate?.();
+      break;
+    }
+  }
+  state.deployBusy = false;
+  requestUpdate?.();
+}
+
+async function deployDraft(client: GatewayBrowserClient, requestUpdate?: () => void) {
+  const state = ensureViewState();
+  state.deployBusy = true;
+  state.runtimeMessage = "Deploying…";
+  requestUpdate?.();
+  try {
+    state.panel = await client.request<AgentBuilderGatewayState>("agentBuilder.deploy", {});
+    state.runtimeMessage = "Deployment started; waiting for the agent to become ready.";
+    requestUpdate?.();
+    await pollDeploymentStatus(client, requestUpdate);
+  } catch (error) {
+    state.deployBusy = false;
+    state.runtimeMessage = `Deploy failed: ${error instanceof Error ? error.message : String(error)}`;
+    requestUpdate?.();
+  }
 }
 
 export function renderAgentBuilder(props: AgentBuilderProps) {
@@ -199,9 +251,15 @@ export function renderAgentBuilder(props: AgentBuilderProps) {
               validation: state.panel.validation,
               deployment: {
                 status: state.panel.deploymentStatus,
-                detail: deploymentDetail(state.panel),
+                detail: deploymentDetail(state, state.panel),
               },
               previewHref: pathForAgentPreview(state.panel.draftSpec.agent.id, props.basePath),
+              deployBusy: state.deployBusy,
+              onDeploy: () => {
+                if (props.client && !state.deployBusy) {
+                  void deployDraft(props.client, props.requestUpdate);
+                }
+              },
             })
           : html`
               <section class="card">

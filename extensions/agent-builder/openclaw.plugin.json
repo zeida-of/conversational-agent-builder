@@ -12,7 +12,10 @@
   },
   "contracts": {
     "tools": [
+      "deploy_agent",
       "get_current_agent_spec",
+      "get_deployment_status",
+      "list_capabilities",
       "patch_agent_spec",
       "reset_agent_spec",
       "validate_agent_spec"

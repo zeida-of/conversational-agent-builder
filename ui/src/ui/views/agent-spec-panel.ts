@@ -13,6 +13,8 @@ export type AgentSpecPanelProps = {
   validation: AgentSpecValidationResult;
   deployment: { status: AgentDeploymentStatus; detail: string };
   previewHref: string;
+  onDeploy?: () => void;
+  deployBusy?: boolean;
 };
 
 function renderField(label: string, value: string) {
@@ -77,6 +79,12 @@ export function renderAgentSpecPanel(props: AgentSpecPanelProps) {
               `,
             )}
       </div>
+      <div style="margin-top: 10px;">
+        <div class="muted" style="font-size: 12px;">Knowledge</div>
+        ${agent.knowledge.length === 0
+          ? html`<div class="muted">No knowledge packs attached.</div>`
+          : agent.knowledge.map((item) => html`<div class="mono">${item.packRef}</div>`)}
+      </div>
       ${renderField(
         "Deployment target",
         `${agent.runtime.platform}/${agent.runtime.protocol}, namespace ${agent.deployment.namespace}, ${agent.deployment.replicas} replica(s)`,
@@ -90,13 +98,22 @@ export function renderAgentSpecPanel(props: AgentSpecPanelProps) {
         <div><span class="pill">${props.deployment.status}</span></div>
         <div class="muted" style="margin-top: 4px;">${props.deployment.detail}</div>
       </div>
-      ${props.previewHref
-        ? html`
-            <div style="margin-top: 14px;">
-              <a class="btn" href=${props.previewHref}>Open preview chat</a>
-            </div>
-          `
-        : nothing}
+      <div class="row" style="margin-top: 14px; gap: 8px; flex-wrap: wrap;">
+        ${props.onDeploy
+          ? html`
+              <button
+                class="btn primary"
+                ?disabled=${props.deployBusy || !props.validation.ok}
+                @click=${props.onDeploy}
+              >
+                ${props.deployBusy ? "Deploying…" : "Deploy"}
+              </button>
+            `
+          : nothing}
+        ${props.previewHref
+          ? html`<a class="btn" href=${props.previewHref}>Open preview chat</a>`
+          : nothing}
+      </div>
     </section>
   `;
 }

@@ -16,6 +16,7 @@ export function createDefaultAgentSpec(overrides?: { id?: string; name?: string 
         temperature: 0.2,
       },
       tools: [],
+      knowledge: [],
       memory: { enabled: false },
       runtime: { platform: "kagenti", protocol: "a2a" },
       deployment: { namespace: "openclaw", replicas: 1 },

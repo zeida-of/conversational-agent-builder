@@ -1,5 +1,6 @@
 // Gateway methods backing the /agent-builder UI side panel.
 import type { OpenClawPluginApi } from "../api.ts";
+import { deployAgentSpec, getAgentRuntimeStatus, type KubectlRunner } from "./deploy.ts";
 import type { AgentBuilderStore } from "./store.ts";
 
 type GatewayRespond = Parameters<
@@ -14,14 +15,65 @@ function respondError(respond: GatewayRespond, error: unknown) {
 export function registerAgentBuilderGatewayMethods(params: {
   api: OpenClawPluginApi;
   store: AgentBuilderStore;
+  kubectl?: KubectlRunner;
 }) {
-  const { api, store } = params;
+  const { api, store, kubectl } = params;
 
   api.registerGatewayMethod(
     "agentBuilder.getState",
     async ({ respond }) => {
       try {
         respond(true, await store.getState());
+      } catch (error) {
+        respondError(respond, error);
+      }
+    },
+    { scope: "operator.read" },
+  );
+
+  api.registerGatewayMethod(
+    "agentBuilder.deploy",
+    async ({ respond }) => {
+      try {
+        const state = await store.getState();
+        if (!state.validation.ok) {
+          respond(false, undefined, {
+            code: "invalid_spec",
+            message: "The draft is invalid; fix validation errors before deploying.",
+          });
+          return;
+        }
+        const outcome = await deployAgentSpec(state.draftSpec, kubectl);
+        if (!outcome.ok) {
+          await store.setDeployment({ status: "failed" });
+          respond(false, undefined, {
+            code: "deploy_failed",
+            message: outcome.errors.join("; "),
+          });
+          return;
+        }
+        respond(
+          true,
+          await store.setDeployment({ status: outcome.status, deployedSpec: state.draftSpec }),
+        );
+      } catch (error) {
+        respondError(respond, error);
+      }
+    },
+    { scope: "operator.admin" },
+  );
+
+  api.registerGatewayMethod(
+    "agentBuilder.status",
+    async ({ respond }) => {
+      try {
+        const state = await store.getState();
+        const status = await getAgentRuntimeStatus(
+          state.lastDeployedSpec ?? state.draftSpec,
+          kubectl,
+        );
+        const saved = await store.setDeployment({ status: status.status });
+        respond(true, { ...saved, runtime: status });
       } catch (error) {
         respondError(respond, error);
       }

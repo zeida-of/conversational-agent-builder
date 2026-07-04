@@ -77,6 +77,28 @@ describe("agent-builder store", () => {
     expect(state.validation.ok).toBe(true);
   });
 
+  it("normalizes stored drafts from older schema versions on read", async () => {
+    const openKeyedStore = createMemoryKeyedStore();
+    const seeded = createAgentBuilderStore(openKeyedStore);
+    const initial = await seeded.getState();
+    // Simulate an M2-era record persisted before the knowledge field existed.
+    const stale = structuredClone(initial.draftSpec) as { agent: { knowledge?: unknown } };
+    delete stale.agent.knowledge;
+    await openKeyedStore<Record<string, unknown>>({
+      namespace: "agent-builder-drafts",
+      maxEntries: 64,
+    }).register("active-draft", {
+      version: 3,
+      draftSpec: stale,
+      deploymentStatus: "draft",
+      createdAt: 0,
+      updatedAt: 0,
+    });
+    const state = await createAgentBuilderStore(openKeyedStore).getState();
+    expect(state.validation.ok).toBe(true);
+    expect(state.draftSpec.agent.knowledge).toEqual([]);
+  });
+
   it("tracks deployment status and last deployed spec", async () => {
     const store = createAgentBuilderStore(createMemoryKeyedStore());
     const { draftSpec } = await store.getState();

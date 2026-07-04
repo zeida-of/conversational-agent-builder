@@ -9,6 +9,8 @@ import {
 import { stringEnum } from "openclaw/plugin-sdk/channel-actions";
 import { Type } from "typebox";
 import type { AnyAgentTool } from "../api.ts";
+import { KNOWLEDGE_PACKS, TOOL_CATALOG } from "./catalog.ts";
+import { deployAgentSpec, getAgentRuntimeStatus, type KubectlRunner } from "./deploy.ts";
 import type { AgentBuilderState, AgentBuilderStore } from "./store.ts";
 
 const PatchOperationSchema = Type.Object({
@@ -55,7 +57,10 @@ function stateResult(state: AgentBuilderState, note?: string) {
   };
 }
 
-export function createAgentBuilderTools(store: AgentBuilderStore): AnyAgentTool[] {
+export function createAgentBuilderTools(
+  store: AgentBuilderStore,
+  kubectl?: KubectlRunner,
+): AnyAgentTool[] {
   const getSpec: AnyAgentTool = {
     name: "get_current_agent_spec",
     label: "Get Agent Spec",
@@ -120,5 +125,101 @@ export function createAgentBuilderTools(store: AgentBuilderStore): AnyAgentTool[
     },
   };
 
-  return [getSpec, patchSpec, validateSpec, resetSpec];
+  const listCapabilities: AnyAgentTool = {
+    name: "list_capabilities",
+    label: "List Capabilities",
+    description:
+      "List the tool servers and knowledge packs that can be attached to the agent (tools[].serverRef and knowledge[].packRef values must come from here).",
+    parameters: EMPTY_PARAMS,
+    execute: async () => {
+      const capabilities = {
+        tools: TOOL_CATALOG.map(({ serverRef, description, tools }) => ({
+          serverRef,
+          description,
+          tools,
+        })),
+        knowledgePacks: KNOWLEDGE_PACKS.map(({ packRef, title, description }) => ({
+          packRef,
+          title,
+          description,
+        })),
+      };
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(capabilities, null, 2) }],
+        details: capabilities,
+      };
+    },
+  };
+
+  const deployAgent: AnyAgentTool = {
+    name: "deploy_agent",
+    label: "Deploy Agent",
+    description:
+      "Deploy (or redeploy) the current draft to the Kagenti runtime. Only call this when the user explicitly asks to deploy. The draft must be valid.",
+    parameters: EMPTY_PARAMS,
+    execute: async () => {
+      const state = await store.getState();
+      if (!state.validation.ok) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Cannot deploy: the draft is invalid. ${describeValidation(state.validation)}`,
+            },
+          ],
+          details: state.validation,
+        };
+      }
+      const outcome = await deployAgentSpec(state.draftSpec, kubectl);
+      if (!outcome.ok) {
+        await store.setDeployment({ status: "failed" });
+        return {
+          content: [
+            { type: "text" as const, text: `Deployment failed: ${outcome.errors.join("; ")}` },
+          ],
+          details: outcome,
+        };
+      }
+      await store.setDeployment({ status: outcome.status, deployedSpec: state.draftSpec });
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `Deployment started for "${state.draftSpec.agent.id}". Applied: ${outcome.applied.join(", ")}. Use get_deployment_status to confirm it is running before telling the user it is live.`,
+          },
+        ],
+        details: outcome,
+      };
+    },
+  };
+
+  const deploymentStatus: AnyAgentTool = {
+    name: "get_deployment_status",
+    label: "Get Deployment Status",
+    description:
+      "Check the live runtime status of the deployed agent (draft/deploying/running/failed).",
+    parameters: EMPTY_PARAMS,
+    execute: async () => {
+      const state = await store.getState();
+      const status = await getAgentRuntimeStatus(
+        state.lastDeployedSpec ?? state.draftSpec,
+        kubectl,
+      );
+      await store.setDeployment({ status: status.status });
+      return {
+        content: [{ type: "text" as const, text: `Status: ${status.status}. ${status.message}` }],
+        details: status,
+      };
+    },
+  };
+
+  return [
+    getSpec,
+    patchSpec,
+    validateSpec,
+    resetSpec,
+    listCapabilities,
+    deployAgent,
+    deploymentStatus,
+  ];
 }

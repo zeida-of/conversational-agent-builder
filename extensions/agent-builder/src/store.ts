@@ -55,7 +55,14 @@ function freshRecord(overrides?: { id?: string; name?: string }): AgentBuilderDr
 }
 
 function withValidation(record: AgentBuilderDraftRecord): AgentBuilderState {
-  return { ...record, validation: validateAgentSpec(record.draftSpec) };
+  const validation = validateAgentSpec(record.draftSpec);
+  // Reading re-parses through the schema so stored drafts from older spec
+  // versions pick up new defaulted fields before anything consumes them.
+  return {
+    ...record,
+    draftSpec: validation.ok ? validation.spec : record.draftSpec,
+    validation,
+  };
 }
 
 export function createAgentBuilderStore(openKeyedStore: OpenKeyedStore): AgentBuilderStore {
