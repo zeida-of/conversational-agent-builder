@@ -395,6 +395,7 @@ export const sharedVitestConfig = {
         find: "@openclaw/normalization-core",
         replacement: path.join(repoRoot, "packages", "normalization-core", "src", "index.ts"),
       },
+      sourcePackageAlias("agent-spec"),
       sourcePackageAlias("media-core", "base64"),
       sourcePackageAlias("media-core", "constants"),
       sourcePackageAlias("media-core", "content-length"),

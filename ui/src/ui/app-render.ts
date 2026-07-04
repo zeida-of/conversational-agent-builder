@@ -4181,7 +4181,12 @@ export function renderApp(state: AppViewState) {
             })
           : nothing}
         ${state.tab === "agentBuilder"
-          ? renderAgentBuilder({ basePath: state.basePath, requestUpdate: requestHostUpdate })
+          ? renderAgentBuilder({
+              client: state.client,
+              connected: state.connected,
+              basePath: state.basePath,
+              requestUpdate: requestHostUpdate,
+            })
           : nothing}
         ${state.tab === "agentPreview"
           ? renderAgentPreview({

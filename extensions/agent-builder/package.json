@@ -1,0 +1,19 @@
+{
+  "name": "@openclaw/agent-builder",
+  "version": "2026.6.11",
+  "private": true,
+  "description": "OpenClaw conversational agent builder: constrained AgentSpec editing tools and state",
+  "type": "module",
+  "dependencies": {
+    "@openclaw/agent-spec": "workspace:*",
+    "typebox": "1.1.39"
+  },
+  "devDependencies": {
+    "@openclaw/plugin-sdk": "workspace:*"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

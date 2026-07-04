@@ -102,6 +102,7 @@ import type {
   UpdateAvailable,
 } from "./types.ts";
 import type { ChatQueueItem, ChatSessionRefreshTarget } from "./ui-types.ts";
+import { handleAgentBuilderChatEvent, isAgentBuilderSessionKey } from "./views/agent-builder.ts";
 
 function isGenericBrowserFetchFailure(message: string): boolean {
   return /^(?:typeerror:\s*)?(?:fetch failed|failed to fetch)$/i.test(message.trim());
@@ -1305,7 +1306,16 @@ function handleGatewayEventUnsafe(host: GatewayHost, evt: GatewayEventFrame) {
   }
 
   if (evt.event === "chat") {
-    handleChatGatewayEvent(host, evt.payload as ChatEventPayload | undefined);
+    const payload = evt.payload as ChatEventPayload | undefined;
+    // The /agent-builder page owns its dedicated session; keep its events out
+    // of the main chat state machine (history, run tracking, session focus).
+    if (isAgentBuilderSessionKey(payload?.sessionKey)) {
+      handleAgentBuilderChatEvent(payload, () =>
+        (host as { requestUpdate?: () => void }).requestUpdate?.(),
+      );
+      return;
+    }
+    handleChatGatewayEvent(host, payload);
     return;
   }
 

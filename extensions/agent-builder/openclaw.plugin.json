@@ -1,0 +1,16 @@
+{
+  "id": "agent-builder",
+  "activation": {
+    "onStartup": true
+  },
+  "name": "Agent Builder",
+  "description": "Conversational agent builder: constrained tools that edit the canonical AgentSpec for Kagenti-deployed agents.",
+  "contracts": {
+    "tools": [
+      "get_current_agent_spec",
+      "patch_agent_spec",
+      "reset_agent_spec",
+      "validate_agent_spec"
+    ]
+  }
+}

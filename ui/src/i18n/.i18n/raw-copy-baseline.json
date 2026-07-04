@@ -535,6 +535,20 @@
     },
     {
       "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-builder.ts",
+      "text": "Canonical AgentSpec edited by the builder."
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-builder.ts",
+      "text": "Draft agent"
+    },
+    {
+      "count": 1,
       "kind": "object-property",
       "name": "placeholder",
       "path": "ui/src/ui/views/agent-builder.ts",
