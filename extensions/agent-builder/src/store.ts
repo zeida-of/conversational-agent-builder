@@ -27,9 +27,30 @@ export type AgentBuilderState = AgentBuilderDraftRecord & {
 };
 
 const NAMESPACE = "agent-builder-drafts";
+const LEARNING_NAMESPACE = "agent-builder-learning";
 const MAX_ENTRIES = 64;
 // Single-draft MVP: the builder chat always edits the active draft.
 const ACTIVE_DRAFT_KEY = "active-draft";
+const LEARNING_LOG_KEY = "active-log";
+// The learning log lives in one KV value (64KB budget); cap count and text
+// size so long test sessions cannot push it over the limit.
+const MAX_LEARNING_EXCHANGES = 15;
+const MAX_LEARNING_USER_CHARS = 1500;
+const MAX_LEARNING_AGENT_CHARS = 3000;
+
+export type LearningExchange = {
+  at: number;
+  user: string;
+  agent: string;
+  /** A2A task state of the reply ("completed" | "failed"). */
+  state: string;
+};
+
+export type LearningLogRecord = {
+  agentId: string;
+  exchanges: LearningExchange[];
+  updatedAt: number;
+};
 
 export type AgentBuilderStore = {
   getState(): Promise<AgentBuilderState>;
@@ -39,6 +60,14 @@ export type AgentBuilderStore = {
     status: AgentDeploymentStatus;
     deployedSpec?: AgentSpec;
   }): Promise<AgentBuilderState>;
+  appendLearningExchange(entry: {
+    agentId: string;
+    user: string;
+    agent: string;
+    state: string;
+  }): Promise<LearningLogRecord>;
+  getLearningLog(): Promise<LearningLogRecord | undefined>;
+  clearLearningLog(): Promise<void>;
 };
 
 type OpenKeyedStore = <T>(options: OpenKeyedStoreOptions) => PluginStateKeyedStore<T>;
@@ -68,6 +97,8 @@ function withValidation(record: AgentBuilderDraftRecord): AgentBuilderState {
 export function createAgentBuilderStore(openKeyedStore: OpenKeyedStore): AgentBuilderStore {
   const store = () =>
     openKeyedStore<AgentBuilderDraftRecord>({ namespace: NAMESPACE, maxEntries: MAX_ENTRIES });
+  const learningStore = () =>
+    openKeyedStore<LearningLogRecord>({ namespace: LEARNING_NAMESPACE, maxEntries: MAX_ENTRIES });
 
   async function readOrCreate(): Promise<AgentBuilderDraftRecord> {
     const existing = await store().lookup(ACTIVE_DRAFT_KEY);
@@ -98,6 +129,9 @@ export function createAgentBuilderStore(openKeyedStore: OpenKeyedStore): AgentBu
       });
     },
     async reset(overrides) {
+      // A fresh draft is a different agent; stale test observations would
+      // mislead the builder, so the learning log resets with it.
+      await learningStore().delete(LEARNING_LOG_KEY);
       return write(freshRecord(overrides));
     },
     async setDeployment({ status, deployedSpec }) {
@@ -108,6 +142,36 @@ export function createAgentBuilderStore(openKeyedStore: OpenKeyedStore): AgentBu
         ...(deployedSpec ? { lastDeployedSpec: deployedSpec } : {}),
         updatedAt: Date.now(),
       });
+    },
+    async appendLearningExchange(entry) {
+      const existing = await learningStore().lookup(LEARNING_LOG_KEY);
+      // Observations follow the agent under test: switching agents starts a
+      // fresh log instead of mixing transcripts from different agents.
+      const base =
+        existing && existing.agentId === entry.agentId
+          ? existing
+          : { agentId: entry.agentId, exchanges: [], updatedAt: 0 };
+      const record: LearningLogRecord = {
+        agentId: entry.agentId,
+        exchanges: [
+          ...base.exchanges,
+          {
+            at: Date.now(),
+            user: entry.user.slice(0, MAX_LEARNING_USER_CHARS),
+            agent: entry.agent.slice(0, MAX_LEARNING_AGENT_CHARS),
+            state: entry.state,
+          },
+        ].slice(-MAX_LEARNING_EXCHANGES),
+        updatedAt: Date.now(),
+      };
+      await learningStore().register(LEARNING_LOG_KEY, record);
+      return record;
+    },
+    async getLearningLog() {
+      return await learningStore().lookup(LEARNING_LOG_KEY);
+    },
+    async clearLearningLog() {
+      await learningStore().delete(LEARNING_LOG_KEY);
     },
   };
 }

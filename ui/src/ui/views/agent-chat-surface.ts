@@ -1,7 +1,7 @@
 // Shared chat surface used by the agent-builder and agent-preview pages.
 // Deliberately independent from the gateway chat view: these pages talk to the
 // agent-builder plugin APIs, not to gateway sessions.
-import { html, nothing } from "lit";
+import { html, nothing, type TemplateResult } from "lit";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import { toSanitizedMarkdownHtml } from "../markdown.ts";
 
@@ -22,6 +22,10 @@ export type AgentChatSurfaceProps = {
   /** Renders an animated typing indicator while the assistant works. */
   busy?: boolean;
   sendDisabled?: boolean;
+  /** Extra controls rendered on the right side of the header (e.g. toggles). */
+  headerExtra?: TemplateResult;
+  /** One-line callout between header and transcript (e.g. out-of-sync note). */
+  notice?: { kind: "info" | "warning"; text: string };
   onDraftChange: (next: string) => void;
   onSend: () => void;
 };
@@ -66,7 +70,17 @@ export function renderAgentChatSurface(props: AgentChatSurfaceProps) {
           <div class="card-title">${props.title}</div>
           <div class="card-sub">${props.subtitle}</div>
         </div>
+        ${props.headerExtra ?? nothing}
       </div>
+      ${props.notice
+        ? html`<div
+            class="callout ${props.notice.kind === "warning"
+              ? "warning"
+              : "info"} agent-chat__notice"
+          >
+            ${props.notice.text}
+          </div>`
+        : nothing}
       <div class="agent-chat__scroll">
         ${props.messages.length === 0 && !props.busy
           ? html`<div class="agent-chat__empty muted">${props.emptyHint}</div>`

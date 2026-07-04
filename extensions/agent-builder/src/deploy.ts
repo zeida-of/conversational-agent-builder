@@ -65,6 +65,27 @@ export async function deployAgentSpec(
   };
 }
 
+// Checkpoints commit rendered manifests alongside the spec so the git repo is
+// directly consumable by GitOps tooling. Rendering needs live connector
+// discovery, so it is best-effort: an unreachable cluster must never block
+// saving the spec itself.
+export async function renderForCheckpoint(
+  spec: AgentSpec,
+  kubectl: KubectlRunner = runKubectl,
+): Promise<{ manifests?: unknown; warning?: string }> {
+  try {
+    const rendered = renderAgentResources(spec, await listToolServices(kubectl));
+    if (!rendered.ok) {
+      return { warning: `Manifests not rendered: ${rendered.errors.join("; ")}` };
+    }
+    return { manifests: { apiVersion: "v1", kind: "List", items: rendered.resources } };
+  } catch (error) {
+    return {
+      warning: `Manifests not rendered: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 export type RuntimeStatus = {
   status: AgentDeploymentStatus;
   message: string;

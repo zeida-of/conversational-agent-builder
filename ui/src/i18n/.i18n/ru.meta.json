@@ -12,11 +12,11 @@
     "tabs.agentBuilder",
     "tabs.agentPreview"
   ],
-  "generatedAt": "2026-07-03T21:59:36.504Z",
+  "generatedAt": "2026-07-04T17:54:39.220Z",
   "locale": "ru",
   "model": "gpt-5.5",
   "provider": "openai",
-  "sourceHash": "e9e17c60fb15fd09ffc5f43f9b04d17b9a96ab34902be95e9685d5819c2d0269",
+  "sourceHash": "4ba9f2978f828d1e70def4ee244edec58b2275e62e271aaf9a77d0db3c9d31d2",
   "totalKeys": 1427,
   "translatedKeys": 1416,
   "workflow": 1

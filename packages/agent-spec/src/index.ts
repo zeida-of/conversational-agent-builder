@@ -2,9 +2,11 @@ export {
   AGENT_DEPLOYMENT_STATUSES,
   AGENT_SPEC_VERSION,
   agentSpecSchema,
+  agentSpecSkillSchema,
   agentSpecToolSchema,
   type AgentDeploymentStatus,
   type AgentSpec,
+  type AgentSpecSkill,
   type AgentSpecTool,
 } from "./schema.ts";
 export { createDefaultAgentSpec } from "./defaults.ts";

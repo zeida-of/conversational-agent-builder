@@ -1,13 +1,16 @@
 // Gateway methods backing the /agent-builder UI side panel.
+import { validateAgentSpec } from "@openclaw/agent-spec";
 import type { OpenClawPluginApi } from "../api.ts";
 import { sendPreviewMessage } from "./chat-proxy.ts";
 import {
   agentTargetFromSpec,
   deployAgentSpec,
   getAgentRuntimeStatus,
+  renderForCheckpoint,
   type KubectlRunner,
 } from "./deploy.ts";
-import type { AgentBuilderStore } from "./store.ts";
+import { specsEqual, type AgentGitOps } from "./gitops.ts";
+import type { AgentBuilderState, AgentBuilderStore } from "./store.ts";
 
 type GatewayRespond = Parameters<
   Parameters<OpenClawPluginApi["registerGatewayMethod"]>[1]
@@ -21,15 +24,29 @@ function respondError(respond: GatewayRespond, error: unknown) {
 export function registerAgentBuilderGatewayMethods(params: {
   api: OpenClawPluginApi;
   store: AgentBuilderStore;
+  gitops: AgentGitOps;
   kubectl?: KubectlRunner;
 }) {
-  const { api, store, kubectl } = params;
+  const { api, store, gitops, kubectl } = params;
+
+  // Every state-shaped response carries the two sync signals the UI tracks:
+  // draft vs last git checkpoint, and draft vs what is actually deployed.
+  async function withSync(state: AgentBuilderState) {
+    const git = await gitops.status({
+      agentId: state.draftSpec.agent.id,
+      draftSpec: state.draftSpec,
+    });
+    const deployedInSync = state.lastDeployedSpec
+      ? specsEqual(state.draftSpec, state.lastDeployedSpec)
+      : null;
+    return { ...state, git, deployedInSync };
+  }
 
   api.registerGatewayMethod(
     "agentBuilder.getState",
     async ({ respond }) => {
       try {
-        respond(true, await store.getState());
+        respond(true, await withSync(await store.getState()));
       } catch (error) {
         respondError(respond, error);
       }
@@ -60,7 +77,9 @@ export function registerAgentBuilderGatewayMethods(params: {
         }
         respond(
           true,
-          await store.setDeployment({ status: outcome.status, deployedSpec: state.draftSpec }),
+          await withSync(
+            await store.setDeployment({ status: outcome.status, deployedSpec: state.draftSpec }),
+          ),
         );
       } catch (error) {
         respondError(respond, error);
@@ -79,12 +98,79 @@ export function registerAgentBuilderGatewayMethods(params: {
           kubectl,
         );
         const saved = await store.setDeployment({ status: status.status });
-        respond(true, { ...saved, runtime: status });
+        respond(true, { ...(await withSync(saved)), runtime: status });
       } catch (error) {
         respondError(respond, error);
       }
     },
     { scope: "operator.read" },
+  );
+
+  api.registerGatewayMethod(
+    "agentBuilder.checkpoint",
+    async ({ params: requestParams, respond }) => {
+      try {
+        const raw = (requestParams ?? {}) as { message?: unknown };
+        const state = await store.getState();
+        if (!state.validation.ok) {
+          respond(false, undefined, {
+            code: "invalid_spec",
+            message: "The draft is invalid; fix validation errors before saving a checkpoint.",
+          });
+          return;
+        }
+        const rendered = await renderForCheckpoint(state.draftSpec, kubectl);
+        const result = await gitops.checkpoint({
+          spec: state.draftSpec,
+          manifests: rendered.manifests,
+          ...(typeof raw.message === "string" && raw.message.trim()
+            ? { message: raw.message.trim() }
+            : { message: `Checkpoint ${state.draftSpec.agent.id} v${state.version}` }),
+        });
+        if (!result.ok) {
+          respond(false, undefined, { code: "checkpoint_failed", message: result.error });
+          return;
+        }
+        respond(true, {
+          ...(await withSync(state)),
+          checkpoint: {
+            ...result,
+            warnings: [...(rendered.warning ? [rendered.warning] : []), ...result.warnings],
+          },
+        });
+      } catch (error) {
+        respondError(respond, error);
+      }
+    },
+    { scope: "operator.write" },
+  );
+
+  api.registerGatewayMethod(
+    "agentBuilder.restoreCheckpoint",
+    async ({ respond }) => {
+      try {
+        const state = await store.getState();
+        const restored = await gitops.restore(state.draftSpec.agent.id);
+        if (!restored.ok) {
+          respond(false, undefined, { code: "restore_failed", message: restored.error });
+          return;
+        }
+        const validation = validateAgentSpec(restored.spec);
+        if (!validation.ok) {
+          respond(false, undefined, {
+            code: "restore_failed",
+            message: `The checkpointed spec no longer validates: ${validation.errors
+              .map((issue) => `${issue.path}: ${issue.message}`)
+              .join("; ")}`,
+          });
+          return;
+        }
+        respond(true, await withSync(await store.saveDraft(validation.spec)));
+      } catch (error) {
+        respondError(respond, error);
+      }
+    },
+    { scope: "operator.write" },
   );
 
   api.registerGatewayMethod(
@@ -95,6 +181,7 @@ export function registerAgentBuilderGatewayMethods(params: {
           agentId?: unknown;
           message?: unknown;
           contextId?: unknown;
+          learning?: unknown;
         };
         const agentId = typeof raw.agentId === "string" ? raw.agentId.trim() : "";
         const message = typeof raw.message === "string" ? raw.message.trim() : "";
@@ -105,16 +192,24 @@ export function registerAgentBuilderGatewayMethods(params: {
           });
           return;
         }
-        respond(
-          true,
-          await sendPreviewMessage({
+        const result = await sendPreviewMessage({
+          agentId,
+          message,
+          ...(typeof raw.contextId === "string" && raw.contextId
+            ? { contextId: raw.contextId }
+            : {}),
+        });
+        // Learning mode: record the exchange so the builder agent can read the
+        // real transcript when the user gives improvement feedback.
+        if (raw.learning === true) {
+          await store.appendLearningExchange({
             agentId,
-            message,
-            ...(typeof raw.contextId === "string" && raw.contextId
-              ? { contextId: raw.contextId }
-              : {}),
-          }),
-        );
+            user: message,
+            agent: result.text,
+            state: result.state,
+          });
+        }
+        respond(true, result);
       } catch (error) {
         respondError(respond, error);
       }
@@ -152,16 +247,31 @@ export function registerAgentBuilderGatewayMethods(params: {
   );
 
   api.registerGatewayMethod(
+    "agentBuilder.learningClear",
+    async ({ respond }) => {
+      try {
+        await store.clearLearningLog();
+        respond(true, { cleared: true });
+      } catch (error) {
+        respondError(respond, error);
+      }
+    },
+    { scope: "operator.write" },
+  );
+
+  api.registerGatewayMethod(
     "agentBuilder.reset",
     async ({ params: requestParams, respond }) => {
       try {
         const raw = (requestParams ?? {}) as { id?: unknown; name?: unknown };
         respond(
           true,
-          await store.reset({
-            ...(typeof raw.id === "string" && raw.id.trim() ? { id: raw.id.trim() } : {}),
-            ...(typeof raw.name === "string" && raw.name.trim() ? { name: raw.name.trim() } : {}),
-          }),
+          await withSync(
+            await store.reset({
+              ...(typeof raw.id === "string" && raw.id.trim() ? { id: raw.id.trim() } : {}),
+              ...(typeof raw.name === "string" && raw.name.trim() ? { name: raw.name.trim() } : {}),
+            }),
+          ),
         );
       } catch (error) {
         respondError(respond, error);

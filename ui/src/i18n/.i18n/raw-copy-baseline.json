@@ -535,6 +535,13 @@
     },
     {
       "count": 1,
+      "kind": "html-attribute",
+      "name": "title",
+      "path": "ui/src/ui/views/agent-builder.ts",
+      "text": "Record this conversation so the builder can use your feedback to improve the agent"
+    },
+    {
+      "count": 1,
       "kind": "html-text",
       "name": "text",
       "path": "ui/src/ui/views/agent-builder.ts",
@@ -546,6 +553,20 @@
       "name": "text",
       "path": "ui/src/ui/views/agent-builder.ts",
       "text": "Draft agent"
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-builder.ts",
+      "text": "Learning mode"
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-builder.ts",
+      "text": "Reset chat"
     },
     {
       "count": 1,
@@ -682,6 +703,20 @@
     },
     {
       "count": 1,
+      "kind": "html-attribute",
+      "name": "title",
+      "path": "ui/src/ui/views/agent-spec-panel.ts",
+      "text": "Discard draft changes and go back to the last checkpoint"
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-spec-panel.ts",
+      "text": "Cancel"
+    },
+    {
+      "count": 1,
       "kind": "html-text",
       "name": "text",
       "path": "ui/src/ui/views/agent-spec-panel.ts",
@@ -720,6 +755,13 @@
       "kind": "html-text",
       "name": "text",
       "path": "ui/src/ui/views/agent-spec-panel.ts",
+      "text": "No skills yet. Test the agent and give feedback — the builder can turn workflows into skills."
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-spec-panel.ts",
       "text": "No tools attached."
     },
     {
@@ -727,7 +769,35 @@
       "kind": "html-text",
       "name": "text",
       "path": "ui/src/ui/views/agent-spec-panel.ts",
-      "text": "Open preview chat"
+      "text": "Open full-page chat"
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-spec-panel.ts",
+      "text": "Reset to checkpoint"
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-spec-panel.ts",
+      "text": "Save a checkpoint to keep this configuration in version control."
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-spec-panel.ts",
+      "text": "Saved versions"
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-spec-panel.ts",
+      "text": "Skills"
     },
     {
       "count": 1,

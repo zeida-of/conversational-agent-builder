@@ -18,6 +18,18 @@
   min-width: 280px;
 }
 
+/* Merged workspace: builder chat + test chat side by side, panel to the right.
+   Panes wrap into a column on narrow screens via flex-wrap. */
+.agent-builder-layout--workspace .agent-builder-layout__chat {
+  flex: 3 1 360px;
+  min-width: 320px;
+}
+
+.agent-builder-layout--workspace .agent-builder-layout__panel {
+  flex: 2 1 280px;
+  min-width: 260px;
+}
+
 .agent-chat {
   display: flex;
   flex-direction: column;
@@ -29,6 +41,53 @@
 .agent-chat__header {
   padding-bottom: 12px;
   border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.agent-chat__notice {
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+.agent-test-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.agent-test-controls .btn--small {
+  padding: 3px 10px;
+  font-size: 12px;
+}
+
+.agent-learning-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--secondary);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.agent-learning-toggle--on {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.agent-learning-toggle input {
+  accent-color: var(--accent);
+  margin: 0;
 }
 
 .agent-chat__scroll {
@@ -190,4 +249,39 @@
   50% {
     opacity: 0.35;
   }
+}
+
+/* Checkpoint / deployment sync pills */
+
+.agent-sync-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--secondary);
+  border: 1px solid var(--border);
+}
+
+.agent-sync-pill::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted-foreground, currentColor);
+}
+
+.agent-sync-pill--ok::before {
+  background: var(--ok);
+}
+
+.agent-sync-pill--warn::before {
+  background: var(--warn);
+}
+
+.agent-panel-commit {
+  margin-top: 6px;
+  font-size: 12px;
 }

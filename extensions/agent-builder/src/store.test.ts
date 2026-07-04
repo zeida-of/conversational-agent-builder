@@ -1,8 +1,12 @@
+import { mkdtemp, rm } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import type {
   OpenKeyedStoreOptions,
   PluginStateKeyedStore,
 } from "openclaw/plugin-sdk/plugin-state-runtime";
 import { describe, expect, it } from "vitest";
+import { createAgentGitOps } from "./gitops.ts";
 import { createAgentBuilderStore } from "./store.ts";
 import { createAgentBuilderTools } from "./tools.ts";
 
@@ -106,6 +110,76 @@ describe("agent-builder store", () => {
     expect(state.deploymentStatus).toBe("running");
     expect(state.lastDeployedSpec?.agent.id).toBe(draftSpec.agent.id);
   });
+
+  it("defaults skills for drafts stored before the field existed", async () => {
+    const openKeyedStore = createMemoryKeyedStore();
+    const initial = await createAgentBuilderStore(openKeyedStore).getState();
+    const stale = structuredClone(initial.draftSpec) as { agent: { skills?: unknown } };
+    delete stale.agent.skills;
+    await openKeyedStore<Record<string, unknown>>({
+      namespace: "agent-builder-drafts",
+      maxEntries: 64,
+    }).register("active-draft", {
+      version: 2,
+      draftSpec: stale,
+      deploymentStatus: "draft",
+      createdAt: 0,
+      updatedAt: 0,
+    });
+    const state = await createAgentBuilderStore(openKeyedStore).getState();
+    expect(state.validation.ok).toBe(true);
+    expect(state.draftSpec.agent.skills).toEqual([]);
+  });
+});
+
+describe("learning log", () => {
+  it("appends exchanges, caps the log, and restarts per agent", async () => {
+    const store = createAgentBuilderStore(createMemoryKeyedStore());
+    for (let i = 0; i < 20; i += 1) {
+      await store.appendLearningExchange({
+        agentId: "store-helper",
+        user: `question ${i}`,
+        agent: `answer ${i}`,
+        state: "completed",
+      });
+    }
+    const log = await store.getLearningLog();
+    expect(log?.agentId).toBe("store-helper");
+    expect(log?.exchanges).toHaveLength(15);
+    expect(log?.exchanges.at(-1)?.user).toBe("question 19");
+
+    // A different agent under test starts a fresh log.
+    await store.appendLearningExchange({
+      agentId: "faq-bot",
+      user: "hello",
+      agent: "hi",
+      state: "completed",
+    });
+    const switched = await store.getLearningLog();
+    expect(switched?.agentId).toBe("faq-bot");
+    expect(switched?.exchanges).toHaveLength(1);
+  });
+
+  it("clears explicitly and on draft reset", async () => {
+    const store = createAgentBuilderStore(createMemoryKeyedStore());
+    await store.appendLearningExchange({
+      agentId: "store-helper",
+      user: "q",
+      agent: "a",
+      state: "completed",
+    });
+    await store.clearLearningLog();
+    expect(await store.getLearningLog()).toBeUndefined();
+
+    await store.appendLearningExchange({
+      agentId: "store-helper",
+      user: "q",
+      agent: "a",
+      state: "completed",
+    });
+    await store.reset({ id: "new-agent" });
+    expect(await store.getLearningLog()).toBeUndefined();
+  });
 });
 
 describe("agent-builder tools", () => {
@@ -153,5 +227,60 @@ describe("agent-builder tools", () => {
     const text = JSON.stringify(result.content);
     expect(text).toContain("Validation: valid");
     expect(text).toContain("Deployment status: draft");
+  });
+
+  it("patch_agent_spec can add a skill and rejects duplicate names", async () => {
+    const store = createAgentBuilderStore(createMemoryKeyedStore());
+    const tools = createAgentBuilderTools(store);
+    const skill = {
+      op: "add",
+      path: "/agent/skills/-",
+      value: { name: "order-lookup", instructions: "Always call the order tool first." },
+    };
+    const added = await runTool(tools, "patch_agent_spec", { operations: [skill] });
+    expect(JSON.stringify(added.content)).toContain("Patch applied");
+    expect((await store.getState()).draftSpec.agent.skills).toHaveLength(1);
+
+    const duplicate = await runTool(tools, "patch_agent_spec", { operations: [skill] });
+    expect(JSON.stringify(duplicate.content)).toContain("duplicate skill name");
+    expect((await store.getState()).draftSpec.agent.skills).toHaveLength(1);
+  });
+
+  it("save_checkpoint commits the draft through gitops", async () => {
+    const repoDir = await mkdtemp(path.join(os.tmpdir(), "agent-builder-checkpoint-"));
+    try {
+      const store = createAgentBuilderStore(createMemoryKeyedStore());
+      const tools = createAgentBuilderTools(store, {
+        gitops: createAgentGitOps({ repoDir }),
+        // Empty connector catalog: the default draft references no tools.
+        kubectl: async () => ({ code: 0, stdout: JSON.stringify({ items: [] }), stderr: "" }),
+      });
+      const result = await runTool(tools, "save_checkpoint", { message: "Initial version" });
+      const text = JSON.stringify(result.content);
+      expect(text).toContain("Checkpoint saved as commit");
+
+      const unchanged = await runTool(tools, "save_checkpoint", {});
+      expect(JSON.stringify(unchanged.content)).toContain("Nothing new to save");
+    } finally {
+      await rm(repoDir, { recursive: true, force: true });
+    }
+  });
+
+  it("get_recent_agent_conversation reports the observed transcript", async () => {
+    const store = createAgentBuilderStore(createMemoryKeyedStore());
+    const tools = createAgentBuilderTools(store);
+    const empty = await runTool(tools, "get_recent_agent_conversation", {});
+    expect(JSON.stringify(empty.content)).toContain("No test conversation");
+
+    await store.appendLearningExchange({
+      agentId: "store-helper",
+      user: "What is out of stock?",
+      agent: "The USB-C Dock is out of stock.",
+      state: "completed",
+    });
+    const result = await runTool(tools, "get_recent_agent_conversation", {});
+    const text = JSON.stringify(result.content);
+    expect(text).toContain("store-helper");
+    expect(text).toContain("USB-C Dock");
   });
 });

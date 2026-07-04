@@ -427,7 +427,7 @@ export const en: TranslationMap = {
     dreams: "Dreaming",
   },
   subtitles: {
-    agentBuilder: "Describe, validate, and deploy a Kagenti agent.",
+    agentBuilder: "Design, deploy, test, and improve your agent in one workspace.",
     agentPreview: "Chat with the deployed agent runtime.",
     agents: "Workspaces, tools, identities.",
     activity: "Browser-local tool activity summaries.",

@@ -15,9 +15,11 @@
       "deploy_agent",
       "get_current_agent_spec",
       "get_deployment_status",
+      "get_recent_agent_conversation",
       "list_capabilities",
       "patch_agent_spec",
       "reset_agent_spec",
+      "save_checkpoint",
       "validate_agent_spec"
     ]
   }

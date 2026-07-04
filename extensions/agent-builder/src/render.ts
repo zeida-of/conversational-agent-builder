@@ -68,6 +68,15 @@ export function renderAgentResources(
     }
     knowledgeFiles[`knowledge-${pack.packRef}.md`] = pack.content;
   }
+  // Skills become prompt-level operating procedures: the runtime appends every
+  // skill-*.md file to the system prompt, making the workflow deterministic
+  // for the deployed (frozen) agent.
+  const skillFiles: Record<string, string> = {};
+  for (const skill of spec.agent.skills) {
+    const description = skill.description ? `${skill.description}\n\n` : "";
+    skillFiles[`skill-${skill.name}.md`] =
+      `# Skill: ${skill.name}\n\n${description}${skill.instructions}`;
+  }
   if (errors.length > 0) {
     return { ok: false, errors };
   }
@@ -81,6 +90,7 @@ export function renderAgentResources(
     data: {
       "system-prompt.md": spec.agent.systemPrompt,
       ...knowledgeFiles,
+      ...skillFiles,
     },
   };
   const deployment: KubernetesResource = {

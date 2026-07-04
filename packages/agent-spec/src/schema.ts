@@ -22,6 +22,14 @@ export const agentSpecToolSchema = z.object({
     .default({ mode: "read-only" }),
 });
 
+// Skill names become file names (skill-<name>.md) in the rendered ConfigMap,
+// so they follow the same DNS-label shape as agent ids.
+export const agentSpecSkillSchema = z.object({
+  name: z.string().regex(DNS1123_LABEL, DNS1123_MESSAGE),
+  description: z.string().min(1).optional(),
+  instructions: z.string().min(1),
+});
+
 export const agentSpecSchema = z.object({
   specVersion: z.literal(AGENT_SPEC_VERSION).default(AGENT_SPEC_VERSION),
   agent: z.object({
@@ -35,6 +43,26 @@ export const agentSpecSchema = z.object({
       temperature: z.number().min(0).max(2).optional(),
     }),
     tools: z.array(agentSpecToolSchema).default([]),
+    // Skills are named operating procedures baked into the deployed agent's
+    // system prompt; the builder creates them from learning-mode feedback to
+    // make specific workflows deterministic. Names map to files, so duplicates
+    // would silently overwrite each other — reject them here.
+    skills: z
+      .array(agentSpecSkillSchema)
+      .default([])
+      .superRefine((skills, ctx) => {
+        const seen = new Set<string>();
+        for (const [index, skill] of skills.entries()) {
+          if (seen.has(skill.name)) {
+            ctx.addIssue({
+              code: "custom",
+              message: `duplicate skill name "${skill.name}"`,
+              path: [index, "name"],
+            });
+          }
+          seen.add(skill.name);
+        }
+      }),
     // Knowledge packs are curated documents baked into the deployed agent's
     // context; packRef must resolve against the builder's pack registry.
     knowledge: z.array(z.object({ packRef: z.string().min(1) })).default([]),
@@ -53,6 +81,7 @@ export const agentSpecSchema = z.object({
 
 export type AgentSpec = z.infer<typeof agentSpecSchema>;
 export type AgentSpecTool = z.infer<typeof agentSpecToolSchema>;
+export type AgentSpecSkill = z.infer<typeof agentSpecSkillSchema>;
 
 export const AGENT_DEPLOYMENT_STATUSES = [
   "draft",

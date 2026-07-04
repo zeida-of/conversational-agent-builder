@@ -35,6 +35,9 @@ function specWithCapabilities() {
   spec.agent.tools = [
     { name: "web", type: "mcp", serverRef: "web-tools", permissions: { mode: "read-only" } },
   ];
+  spec.agent.skills = [
+    { name: "greeting", description: "How to greet.", instructions: "Greet formally." },
+  ];
   spec.agent.knowledge = [{ packRef: "kagenti-platform" }];
   spec.agent.memory = { enabled: true };
   return spec;
@@ -56,6 +59,9 @@ describe("renderAgentResources", () => {
     const [configMap, deployment] = result.resources;
     expect((configMap.data as Record<string, string>)["knowledge-kagenti-platform.md"]).toContain(
       "Kagenti",
+    );
+    expect((configMap.data as Record<string, string>)["skill-greeting.md"]).toContain(
+      "Greet formally.",
     );
     const container = (deployment.spec as { template: { spec: { containers: unknown[] } } })
       .template.spec.containers[0] as { env: { name: string; value?: string }[] };

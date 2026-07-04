@@ -14,9 +14,11 @@ import {
   agentTargetFromSpec,
   deployAgentSpec,
   getAgentRuntimeStatus,
+  renderForCheckpoint,
   runKubectl,
   type KubectlRunner,
 } from "./deploy.ts";
+import { createAgentGitOps, type AgentGitOps } from "./gitops.ts";
 import type { AgentBuilderState, AgentBuilderStore } from "./store.ts";
 
 const PatchOperationSchema = Type.Object({
@@ -34,6 +36,12 @@ const PatchParamsSchema = Type.Object({
 const ResetParamsSchema = Type.Object({
   id: Type.Optional(Type.String({ description: "Agent id (lowercase letters, digits, hyphens)." })),
   name: Type.Optional(Type.String({ description: "Human-readable agent name." })),
+});
+
+const CheckpointParamsSchema = Type.Object({
+  message: Type.Optional(
+    Type.String({ description: "Short summary of what changed since the last checkpoint." }),
+  ),
 });
 
 const EMPTY_PARAMS = Type.Object({});
@@ -65,8 +73,10 @@ function stateResult(state: AgentBuilderState, note?: string) {
 
 export function createAgentBuilderTools(
   store: AgentBuilderStore,
-  kubectl?: KubectlRunner,
+  options?: { kubectl?: KubectlRunner; gitops?: AgentGitOps },
 ): AnyAgentTool[] {
+  const kubectl = options?.kubectl;
+  const gitops = options?.gitops ?? createAgentGitOps();
   const getSpec: AnyAgentTool = {
     name: "get_current_agent_spec",
     label: "Get Agent Spec",
@@ -220,6 +230,88 @@ export function createAgentBuilderTools(
     },
   };
 
+  const saveCheckpoint: AnyAgentTool = {
+    name: "save_checkpoint",
+    label: "Save Checkpoint",
+    description:
+      "Commit the current draft (spec, skills, rendered manifests) to the platform git repository as a durable version. Use when the user asks to save, or suggest it after meaningful milestones.",
+    parameters: CheckpointParamsSchema,
+    execute: async (_toolCallId, rawParams) => {
+      const params = rawParams as { message?: string };
+      const state = await store.getState();
+      if (!state.validation.ok) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Cannot save a checkpoint while the draft is invalid. ${describeValidation(state.validation)}`,
+            },
+          ],
+          details: state.validation,
+        };
+      }
+      const rendered = await renderForCheckpoint(state.draftSpec, kubectl);
+      const result = await gitops.checkpoint({
+        spec: state.draftSpec,
+        manifests: rendered.manifests,
+        message: params.message,
+      });
+      if (!result.ok) {
+        return {
+          content: [{ type: "text" as const, text: `Checkpoint failed: ${result.error}` }],
+          details: result,
+        };
+      }
+      const lines = [
+        result.committed
+          ? `Checkpoint saved as commit ${result.commit?.hash.slice(0, 7) ?? "?"} ("${result.commit?.subject ?? ""}").`
+          : "Nothing new to save — the draft already matches the last checkpoint.",
+        result.push === "pushed" ? "Pushed to the configured git remote." : undefined,
+        result.push === "push-failed" ? "Warning: the push to the git remote failed." : undefined,
+        rendered.warning,
+        ...result.warnings,
+      ].filter(Boolean);
+      return { content: [{ type: "text" as const, text: lines.join(" ") }], details: result };
+    },
+  };
+
+  const recentConversation: AnyAgentTool = {
+    name: "get_recent_agent_conversation",
+    label: "Get Recent Agent Conversation",
+    description:
+      "Read the recent test conversation the user had with the deployed agent (recorded while Learning mode is on). Call this whenever the user gives feedback about how the agent behaved, so you can see the actual exchanges before improving the draft.",
+    parameters: EMPTY_PARAMS,
+    execute: async () => {
+      const log = await store.getLearningLog();
+      if (!log || log.exchanges.length === 0) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: "No test conversation has been recorded yet. Ask the user to chat with the deployed agent in the Test panel (with Learning mode on) and then share their feedback.",
+            },
+          ],
+          details: { exchanges: [] },
+        };
+      }
+      const transcript = log.exchanges
+        .map(
+          (exchange, index) =>
+            `${index + 1}. User: ${exchange.user}\n   Agent${exchange.state === "failed" ? " (errored)" : ""}: ${exchange.agent}`,
+        )
+        .join("\n");
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `Recent test conversation with deployed agent "${log.agentId}" (${log.exchanges.length} exchanges, newest last):\n${transcript}`,
+          },
+        ],
+        details: log,
+      };
+    },
+  };
+
   return [
     getSpec,
     patchSpec,
@@ -228,5 +320,7 @@ export function createAgentBuilderTools(
     listCapabilities,
     deployAgent,
     deploymentStatus,
+    saveCheckpoint,
+    recentConversation,
   ];
 }

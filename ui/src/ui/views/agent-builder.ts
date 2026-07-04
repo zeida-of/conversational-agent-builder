@@ -1,7 +1,10 @@
-// Agent Builder page: conversational editor for the canonical AgentSpec.
-// Chat goes through the normal gateway chat pipeline on a dedicated builder
-// session; spec/validation/deployment state comes from the agent-builder
-// plugin's gateway methods.
+// Agent Builder workspace: builder chat (edits the canonical AgentSpec), test
+// chat (talks to the deployed agent), and the spec side panel — one page so
+// users can improve the agent while testing it. In Learning mode, test
+// exchanges are recorded for the builder agent to read when the user gives
+// feedback. Chat goes through the normal gateway chat pipeline on a dedicated
+// builder session; spec/validation/deployment/git state comes from the
+// agent-builder plugin's gateway methods.
 import type {
   AgentDeploymentStatus,
   AgentSpec,
@@ -17,7 +20,11 @@ import {
   renderAgentChatSurface,
   type AgentChatMessage,
 } from "./agent-chat-surface.ts";
-import { renderAgentSpecPanel } from "./agent-spec-panel.ts";
+import {
+  renderAgentSpecPanel,
+  renderStatusPill,
+  type AgentBuilderGitStatus,
+} from "./agent-spec-panel.ts";
 
 export const AGENT_BUILDER_AGENT_ID = "agent_builder";
 export const AGENT_BUILDER_SESSION_KEY = "agent:agent_builder:builder-ui";
@@ -30,6 +37,25 @@ type AgentBuilderGatewayState = {
   deploymentStatus: AgentDeploymentStatus;
   updatedAt: number;
   validation: AgentSpecValidationResult;
+  git?: AgentBuilderGitStatus;
+  deployedInSync?: boolean | null;
+};
+
+type CheckpointResponse = AgentBuilderGatewayState & {
+  checkpoint?: {
+    committed: boolean;
+    commit?: { hash: string; subject: string };
+    push: "pushed" | "no-remote" | "push-failed";
+    warnings: string[];
+  };
+};
+
+type TestChatState = {
+  messages: AgentChatMessage[];
+  draft: string;
+  busy: boolean;
+  contextId: string | null;
+  learning: boolean;
 };
 
 type AgentBuilderViewState = {
@@ -42,6 +68,11 @@ type AgentBuilderViewState = {
   panelError: string | null;
   deployBusy: boolean;
   runtimeMessage: string | null;
+  test: TestChatState;
+  checkpointBusy: boolean;
+  checkpointNotice: string | null;
+  restoreArmed: boolean;
+  restoreBusy: boolean;
 };
 
 let viewState: AgentBuilderViewState | null = null;
@@ -61,6 +92,11 @@ function ensureViewState(): AgentBuilderViewState {
     panelError: null,
     deployBusy: false,
     runtimeMessage: null,
+    test: { messages: [], draft: "", busy: false, contextId: null, learning: true },
+    checkpointBusy: false,
+    checkpointNotice: null,
+    restoreArmed: false,
+    restoreBusy: false,
   };
   return viewState;
 }
@@ -152,6 +188,58 @@ async function sendBuilderMessage(
   }
 }
 
+async function sendTestMessage(
+  client: GatewayBrowserClient,
+  agentId: string,
+  text: string,
+  requestUpdate?: () => void,
+) {
+  const state = ensureViewState();
+  const test = state.test;
+  test.messages.push({ role: "user", text });
+  test.busy = true;
+  requestUpdate?.();
+  pinAgentChatToBottom(document);
+  try {
+    const result = await client.request<{ text: string; contextId: string; state: string }>(
+      "agentBuilder.previewSend",
+      {
+        agentId,
+        message: text,
+        learning: test.learning,
+        ...(test.contextId ? { contextId: test.contextId } : {}),
+      },
+    );
+    test.contextId = result.contextId;
+    test.messages.push({
+      role: "assistant",
+      text: result.text,
+      ...(result.state === "failed" ? { error: true } : {}),
+    });
+  } catch (error) {
+    test.messages.push({
+      role: "assistant",
+      text: error instanceof Error ? error.message : String(error),
+      error: true,
+    });
+  } finally {
+    test.busy = false;
+    requestUpdate?.();
+    pinAgentChatToBottom(document);
+  }
+}
+
+function resetTestConversation(client: GatewayBrowserClient | null, requestUpdate?: () => void) {
+  const state = ensureViewState();
+  state.test.messages = [];
+  state.test.contextId = null;
+  // Also drop the recorded observations so builder feedback starts fresh.
+  if (client) {
+    client.request("agentBuilder.learningClear", {}).catch(() => undefined);
+  }
+  requestUpdate?.();
+}
+
 export type AgentBuilderProps = {
   client: GatewayBrowserClient | null;
   connected: boolean;
@@ -214,6 +302,122 @@ async function deployDraft(client: GatewayBrowserClient, requestUpdate?: () => v
   }
 }
 
+async function saveCheckpoint(client: GatewayBrowserClient, requestUpdate?: () => void) {
+  const state = ensureViewState();
+  state.checkpointBusy = true;
+  state.checkpointNotice = null;
+  requestUpdate?.();
+  try {
+    const response = await client.request<CheckpointResponse>("agentBuilder.checkpoint", {});
+    state.panel = response;
+    const checkpoint = response.checkpoint;
+    if (checkpoint) {
+      const parts = [
+        checkpoint.committed
+          ? `Saved ${checkpoint.commit?.hash.slice(0, 7) ?? ""}`.trim()
+          : "No changes to save.",
+        checkpoint.push === "pushed" ? "pushed to remote" : undefined,
+        checkpoint.push === "push-failed" ? "push to remote failed" : undefined,
+        ...checkpoint.warnings,
+      ].filter(Boolean);
+      state.checkpointNotice = parts.join(" · ");
+    }
+  } catch (error) {
+    state.checkpointNotice = `Checkpoint failed: ${error instanceof Error ? error.message : String(error)}`;
+  } finally {
+    state.checkpointBusy = false;
+    requestUpdate?.();
+  }
+}
+
+async function restoreCheckpoint(client: GatewayBrowserClient, requestUpdate?: () => void) {
+  const state = ensureViewState();
+  state.restoreBusy = true;
+  requestUpdate?.();
+  try {
+    state.panel = await client.request<AgentBuilderGatewayState>(
+      "agentBuilder.restoreCheckpoint",
+      {},
+    );
+    state.checkpointNotice = "Draft reset to the last checkpoint.";
+  } catch (error) {
+    state.checkpointNotice = `Reset failed: ${error instanceof Error ? error.message : String(error)}`;
+  } finally {
+    state.restoreBusy = false;
+    state.restoreArmed = false;
+    requestUpdate?.();
+  }
+}
+
+function renderTestPane(props: AgentBuilderProps, state: AgentBuilderViewState) {
+  const panel = state.panel;
+  const deployedAgentId = panel?.lastDeployedSpec?.agent.id ?? null;
+  const outOfSync = panel?.deployedInSync === false;
+  const headerExtra = html`
+    <div class="agent-test-controls">
+      ${deployedAgentId ? renderStatusPill(panel?.deploymentStatus ?? "draft") : ""}
+      <label
+        class="agent-learning-toggle ${state.test.learning ? "agent-learning-toggle--on" : ""}"
+        title="Record this conversation so the builder can use your feedback to improve the agent"
+      >
+        <input
+          type="checkbox"
+          .checked=${state.test.learning}
+          @change=${(event: Event) => {
+            state.test.learning = (event.target as HTMLInputElement).checked;
+            props.requestUpdate?.();
+          }}
+        />
+        Learning mode
+      </label>
+      <button
+        class="btn btn--small"
+        ?disabled=${state.test.messages.length === 0}
+        @click=${() => resetTestConversation(props.client, props.requestUpdate)}
+      >
+        Reset chat
+      </button>
+    </div>
+  `;
+  return renderAgentChatSurface({
+    title: deployedAgentId ? `Test: ${deployedAgentId}` : "Test your agent",
+    subtitle: state.test.learning
+      ? "Live chat with the deployed agent. The builder is watching — give it feedback on the left."
+      : "Live chat with the deployed agent running in Kagenti.",
+    placeholder: deployedAgentId
+      ? "Try your agent — replies come from the live deployment"
+      : "Deploy the draft first",
+    emptyHint: deployedAgentId
+      ? "Try the agent, then tell the builder what to improve. Feedback becomes prompt, tool, and skill changes."
+      : "No deployed agent yet. Deploy your draft, then test it here without leaving the builder.",
+    messages: state.test.messages,
+    draft: state.test.draft,
+    busy: state.test.busy,
+    sendDisabled: state.test.busy || !props.connected || !props.client || !deployedAgentId,
+    headerExtra,
+    ...(outOfSync
+      ? {
+          notice: {
+            kind: "warning" as const,
+            text: "The draft changed since this agent was deployed. Deploy again to test the latest configuration.",
+          },
+        }
+      : {}),
+    onDraftChange: (next) => {
+      state.test.draft = next;
+      props.requestUpdate?.();
+    },
+    onSend: () => {
+      const text = state.test.draft.trim();
+      if (!text || !props.client || state.test.busy || !deployedAgentId) {
+        return;
+      }
+      state.test.draft = "";
+      void sendTestMessage(props.client, deployedAgentId, text, props.requestUpdate);
+    },
+  });
+}
+
 export function renderAgentBuilder(props: AgentBuilderProps) {
   const state = ensureViewState();
   panelRefreshClient = props.client;
@@ -224,7 +428,7 @@ export function renderAgentBuilder(props: AgentBuilderProps) {
     ? [...state.messages, { role: "assistant", text: state.streamText }]
     : state.messages;
   return html`
-    <div class="agent-builder-layout">
+    <div class="agent-builder-layout agent-builder-layout--workspace">
       <div class="agent-builder-layout__chat">
         ${renderAgentChatSurface({
           title: "Builder chat",
@@ -251,6 +455,7 @@ export function renderAgentBuilder(props: AgentBuilderProps) {
           },
         })}
       </div>
+      <div class="agent-builder-layout__chat">${renderTestPane(props, state)}</div>
       <div class="agent-builder-layout__panel">
         ${state.panel
           ? renderAgentSpecPanel({
@@ -260,11 +465,34 @@ export function renderAgentBuilder(props: AgentBuilderProps) {
                 status: state.panel.deploymentStatus,
                 detail: deploymentDetail(state, state.panel),
               },
-              previewHref: pathForAgentPreview(state.panel.draftSpec.agent.id, props.basePath),
+              git: state.panel.git ?? null,
+              deployedInSync: state.panel.deployedInSync ?? null,
+              previewHref: pathForAgentPreview(
+                state.panel.lastDeployedSpec?.agent.id ?? state.panel.draftSpec.agent.id,
+                props.basePath,
+              ),
               deployBusy: state.deployBusy,
               onDeploy: () => {
                 if (props.client && !state.deployBusy) {
                   void deployDraft(props.client, props.requestUpdate);
+                }
+              },
+              checkpointBusy: state.checkpointBusy,
+              checkpointNotice: state.checkpointNotice,
+              onCheckpoint: () => {
+                if (props.client && !state.checkpointBusy) {
+                  void saveCheckpoint(props.client, props.requestUpdate);
+                }
+              },
+              restoreBusy: state.restoreBusy,
+              restoreArmed: state.restoreArmed,
+              onRestoreArm: (armed) => {
+                state.restoreArmed = armed;
+                props.requestUpdate?.();
+              },
+              onRestore: () => {
+                if (props.client && !state.restoreBusy) {
+                  void restoreCheckpoint(props.client, props.requestUpdate);
                 }
               },
             })
