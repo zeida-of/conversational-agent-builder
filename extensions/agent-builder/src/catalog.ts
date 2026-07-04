@@ -1,7 +1,10 @@
-// Curated capability catalog: MCP tool servers deployable in-cluster and
-// knowledge packs baked into deployed agents. serverRef/packRef values in an
-// AgentSpec must resolve here — the renderer refuses unknown references so the
+// Capability catalog. Tool connectors are DISCOVERED from the cluster:
+// platform engineers deploy any MCP server (e.g. the rest-connector bridge)
+// with the `protocol.kagenti.io/mcp` Service label and it becomes attachable
+// — no OpenClaw rebuild. Knowledge packs remain curated data here. The
+// renderer refuses serverRef/packRef values that do not resolve, so the
 // builder can never wire arbitrary endpoints.
+import type { KubectlRunner } from "./deploy.ts";
 
 export type ToolCatalogEntry = {
   serverRef: string;
@@ -11,14 +14,100 @@ export type ToolCatalogEntry = {
   tools: string[];
 };
 
-export const TOOL_CATALOG: ToolCatalogEntry[] = [
-  {
-    serverRef: "web-tools",
-    description: "Web browsing: search the web (DuckDuckGo) and fetch/read pages. Read-only.",
-    url: "http://web-tools-mcp.openclaw.svc.cluster.local:8000/mcp",
-    tools: ["web_search", "fetch_url"],
-  },
-];
+const MANAGED_NAMESPACE = "openclaw";
+const MCP_SERVICE_LABEL = "protocol.kagenti.io/mcp";
+const DESCRIPTION_ANNOTATION = "agent-builder.openclaw.dev/description";
+
+type ServiceJson = {
+  metadata: {
+    name: string;
+    labels?: Record<string, string>;
+    annotations?: Record<string, string>;
+  };
+  spec?: { ports?: { port?: number }[] };
+};
+
+/** Lists attachable connector services from the cluster (no MCP round-trips). */
+export async function listToolServices(kubectl: KubectlRunner): Promise<ToolCatalogEntry[]> {
+  const result = await kubectl([
+    "get",
+    "services",
+    "-n",
+    MANAGED_NAMESPACE,
+    "-l",
+    MCP_SERVICE_LABEL,
+    "-o",
+    "json",
+  ]);
+  if (result.code !== 0) {
+    throw new Error(`connector discovery failed: ${result.stderr.trim() || "kubectl error"}`);
+  }
+  const items = (JSON.parse(result.stdout) as { items?: ServiceJson[] }).items ?? [];
+  return items.map((service) => {
+    const name = service.metadata.name;
+    const port = service.spec?.ports?.[0]?.port ?? 8000;
+    return {
+      serverRef: service.metadata.labels?.["app.kubernetes.io/name"] ?? name.replace(/-mcp$/, ""),
+      description: service.metadata.annotations?.[DESCRIPTION_ANNOTATION] ?? "MCP tool server.",
+      url: `http://${name}.${MANAGED_NAMESPACE}.svc.cluster.local:${port}/mcp`,
+      tools: [],
+    };
+  });
+}
+
+type McpFetch = (
+  url: string,
+  init: { method: string; headers: Record<string, string>; body: string },
+) => Promise<{ ok: boolean; json(): Promise<unknown> }>;
+
+async function listMcpTools(url: string, fetchImpl: McpFetch): Promise<string[]> {
+  const rpc = async (method: string, params?: unknown, id?: number) => {
+    const response = await fetchImpl(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream",
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        ...(id ? { id } : {}),
+        method,
+        ...(params ? { params } : {}),
+      }),
+    });
+    return id ? ((await response.json()) as { result?: { tools?: { name: string }[] } }) : null;
+  };
+  await rpc(
+    "initialize",
+    {
+      protocolVersion: "2025-03-26",
+      capabilities: {},
+      clientInfo: { name: "agent-builder", version: "1.0" },
+    },
+    1,
+  );
+  await rpc("notifications/initialized");
+  const listed = await rpc("tools/list", undefined, 2);
+  return (listed?.result?.tools ?? []).map((tool) => tool.name);
+}
+
+/** Full discovery including each connector's tool names (used by list_capabilities). */
+export async function discoverToolServers(
+  kubectl: KubectlRunner,
+  fetchImpl: McpFetch = fetch as unknown as McpFetch,
+): Promise<ToolCatalogEntry[]> {
+  const services = await listToolServices(kubectl);
+  return await Promise.all(
+    services.map(async (entry) => {
+      try {
+        entry.tools = await listMcpTools(entry.url, fetchImpl);
+      } catch {
+        entry.description = `${entry.description} (currently unreachable)`;
+      }
+      return entry;
+    }),
+  );
+}
 
 export type KnowledgePack = {
   packRef: string;
@@ -102,10 +191,6 @@ failures remove the pod from service endpoints without restarting it. A pod
 that is Running but not Ready usually has a failing readiness probe.`,
   },
 ];
-
-export function findToolCatalogEntry(serverRef: string): ToolCatalogEntry | undefined {
-  return TOOL_CATALOG.find((entry) => entry.serverRef === serverRef);
-}
 
 export function findKnowledgePack(packRef: string): KnowledgePack | undefined {
   return KNOWLEDGE_PACKS.find((pack) => pack.packRef === packRef);

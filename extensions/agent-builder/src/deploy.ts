@@ -4,6 +4,7 @@
 // templates from render.ts.
 import { spawn } from "node:child_process";
 import type { AgentDeploymentStatus, AgentSpec } from "@openclaw/agent-spec";
+import { listToolServices } from "./catalog.ts";
 import { agentEndpointUrl, renderAgentResources, type KubernetesResource } from "./render.ts";
 
 export type KubectlRunner = (
@@ -39,7 +40,12 @@ export async function deployAgentSpec(
   spec: AgentSpec,
   kubectl: KubectlRunner = runKubectl,
 ): Promise<DeployOutcome> {
-  const rendered = renderAgentResources(spec);
+  let rendered: ReturnType<typeof renderAgentResources>;
+  try {
+    rendered = renderAgentResources(spec, await listToolServices(kubectl));
+  } catch (error) {
+    return { ok: false, errors: [error instanceof Error ? error.message : String(error)] };
+  }
   if (!rendered.ok) {
     return { ok: false, errors: rendered.errors };
   }
@@ -73,12 +79,25 @@ type DeploymentJson = {
   };
 };
 
+export type AgentTarget = { id: string; namespace: string };
+
+export function agentTargetFromSpec(spec: AgentSpec): AgentTarget {
+  return { id: spec.agent.id, namespace: spec.agent.deployment.namespace };
+}
+
 export async function getAgentRuntimeStatus(
-  spec: AgentSpec,
+  target: AgentTarget,
   kubectl: KubectlRunner = runKubectl,
 ): Promise<RuntimeStatus> {
-  const namespace = spec.agent.deployment.namespace;
-  const result = await kubectl(["get", "deployment", spec.agent.id, "-n", namespace, "-o", "json"]);
+  const result = await kubectl([
+    "get",
+    "deployment",
+    target.id,
+    "-n",
+    target.namespace,
+    "-o",
+    "json",
+  ]);
   if (result.code !== 0) {
     if (/notfound/i.test(result.stderr.replaceAll(" ", ""))) {
       return { status: "draft", message: "Not deployed.", readyReplicas: 0 };
@@ -101,7 +120,7 @@ export async function getAgentRuntimeStatus(
       status: "running",
       message: "Agent is running.",
       readyReplicas,
-      endpoint: agentEndpointUrl(spec),
+      endpoint: `http://${target.id}.${target.namespace}.svc.cluster.local:8000`,
     };
   }
   const conditions = parsed.status?.conditions ?? [];

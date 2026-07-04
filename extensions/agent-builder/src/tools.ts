@@ -9,8 +9,14 @@ import {
 import { stringEnum } from "openclaw/plugin-sdk/channel-actions";
 import { Type } from "typebox";
 import type { AnyAgentTool } from "../api.ts";
-import { KNOWLEDGE_PACKS, TOOL_CATALOG } from "./catalog.ts";
-import { deployAgentSpec, getAgentRuntimeStatus, type KubectlRunner } from "./deploy.ts";
+import { discoverToolServers, KNOWLEDGE_PACKS } from "./catalog.ts";
+import {
+  agentTargetFromSpec,
+  deployAgentSpec,
+  getAgentRuntimeStatus,
+  runKubectl,
+  type KubectlRunner,
+} from "./deploy.ts";
 import type { AgentBuilderState, AgentBuilderStore } from "./store.ts";
 
 const PatchOperationSchema = Type.Object({
@@ -129,11 +135,12 @@ export function createAgentBuilderTools(
     name: "list_capabilities",
     label: "List Capabilities",
     description:
-      "List the tool servers and knowledge packs that can be attached to the agent (tools[].serverRef and knowledge[].packRef values must come from here).",
+      "List the connectors (tool servers) and knowledge packs that can be attached to the agent (tools[].serverRef and knowledge[].packRef values must come from here). Connectors are discovered live from the platform.",
     parameters: EMPTY_PARAMS,
     execute: async () => {
+      const discovered = await discoverToolServers(kubectl ?? runKubectl);
       const capabilities = {
-        tools: TOOL_CATALOG.map(({ serverRef, description, tools }) => ({
+        tools: discovered.map(({ serverRef, description, tools }) => ({
           serverRef,
           description,
           tools,
@@ -202,7 +209,7 @@ export function createAgentBuilderTools(
     execute: async () => {
       const state = await store.getState();
       const status = await getAgentRuntimeStatus(
-        state.lastDeployedSpec ?? state.draftSpec,
+        agentTargetFromSpec(state.lastDeployedSpec ?? state.draftSpec),
         kubectl,
       );
       await store.setDeployment({ status: status.status });

@@ -1,6 +1,12 @@
 // Gateway methods backing the /agent-builder UI side panel.
 import type { OpenClawPluginApi } from "../api.ts";
-import { deployAgentSpec, getAgentRuntimeStatus, type KubectlRunner } from "./deploy.ts";
+import { sendPreviewMessage } from "./chat-proxy.ts";
+import {
+  agentTargetFromSpec,
+  deployAgentSpec,
+  getAgentRuntimeStatus,
+  type KubectlRunner,
+} from "./deploy.ts";
 import type { AgentBuilderStore } from "./store.ts";
 
 type GatewayRespond = Parameters<
@@ -69,11 +75,75 @@ export function registerAgentBuilderGatewayMethods(params: {
       try {
         const state = await store.getState();
         const status = await getAgentRuntimeStatus(
-          state.lastDeployedSpec ?? state.draftSpec,
+          agentTargetFromSpec(state.lastDeployedSpec ?? state.draftSpec),
           kubectl,
         );
         const saved = await store.setDeployment({ status: status.status });
         respond(true, { ...saved, runtime: status });
+      } catch (error) {
+        respondError(respond, error);
+      }
+    },
+    { scope: "operator.read" },
+  );
+
+  api.registerGatewayMethod(
+    "agentBuilder.previewSend",
+    async ({ params: requestParams, respond }) => {
+      try {
+        const raw = (requestParams ?? {}) as {
+          agentId?: unknown;
+          message?: unknown;
+          contextId?: unknown;
+        };
+        const agentId = typeof raw.agentId === "string" ? raw.agentId.trim() : "";
+        const message = typeof raw.message === "string" ? raw.message.trim() : "";
+        if (!agentId || !message) {
+          respond(false, undefined, {
+            code: "invalid_params",
+            message: "agentId and message are required",
+          });
+          return;
+        }
+        respond(
+          true,
+          await sendPreviewMessage({
+            agentId,
+            message,
+            ...(typeof raw.contextId === "string" && raw.contextId
+              ? { contextId: raw.contextId }
+              : {}),
+          }),
+        );
+      } catch (error) {
+        respondError(respond, error);
+      }
+    },
+    { scope: "operator.write" },
+  );
+
+  api.registerGatewayMethod(
+    "agentBuilder.previewStatus",
+    async ({ params: requestParams, respond }) => {
+      try {
+        const raw = (requestParams ?? {}) as { agentId?: unknown };
+        const agentId = typeof raw.agentId === "string" ? raw.agentId.trim() : "";
+        if (!agentId) {
+          respond(false, undefined, { code: "invalid_params", message: "agentId is required" });
+          return;
+        }
+        const state = await store.getState();
+        const deployedSpec = state.lastDeployedSpec;
+        const runtime = await getAgentRuntimeStatus(
+          { id: agentId, namespace: "openclaw" },
+          kubectl,
+        );
+        respond(true, {
+          runtime,
+          // Version metadata is only known for the agent this builder manages.
+          version: deployedSpec?.agent.id === agentId ? state.version : null,
+          managed: deployedSpec?.agent.id === agentId || state.draftSpec.agent.id === agentId,
+        });
       } catch (error) {
         respondError(respond, error);
       }

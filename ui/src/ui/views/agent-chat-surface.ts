@@ -1,11 +1,15 @@
 // Shared chat surface used by the agent-builder and agent-preview pages.
 // Deliberately independent from the gateway chat view: these pages talk to the
-// builder/preview HTTP APIs (future milestones), not to gateway sessions.
+// agent-builder plugin APIs, not to gateway sessions.
 import { html, nothing } from "lit";
+import { unsafeHTML } from "lit/directives/unsafe-html.js";
+import { toSanitizedMarkdownHtml } from "../markdown.ts";
 
 export type AgentChatMessage = {
   role: "user" | "assistant";
   text: string;
+  /** Marks runtime/transport failures so they render as error bubbles. */
+  error?: boolean;
 };
 
 export type AgentChatSurfaceProps = {
@@ -15,17 +19,32 @@ export type AgentChatSurfaceProps = {
   emptyHint: string;
   messages: AgentChatMessage[];
   draft: string;
+  /** Renders an animated typing indicator while the assistant works. */
+  busy?: boolean;
   sendDisabled?: boolean;
   onDraftChange: (next: string) => void;
   onSend: () => void;
 };
 
+// Keeps the transcript pinned to the newest message across re-renders.
+function autoScroll(element: Element | undefined) {
+  if (element instanceof HTMLElement) {
+    requestAnimationFrame(() => {
+      element.scrollTop = element.scrollHeight;
+    });
+  }
+}
+
 function renderMessage(message: AgentChatMessage) {
-  const roleLabel = message.role === "user" ? "You" : "Assistant";
+  const roleClass = message.role === "user" ? "agent-chat-bubble--user" : "";
+  const errorClass = message.error ? "agent-chat-bubble--error" : "";
   return html`
-    <div class="agent-chat-message" style="margin-bottom: 12px;">
-      <div class="muted" style="font-size: 12px; margin-bottom: 2px;">${roleLabel}</div>
-      <div style="white-space: pre-wrap;">${message.text}</div>
+    <div class="agent-chat-row agent-chat-row--${message.role}">
+      <div class="agent-chat-bubble ${roleClass} ${errorClass}">
+        ${message.role === "assistant" && !message.error
+          ? html`<div class="cm-preview">${unsafeHTML(toSanitizedMarkdownHtml(message.text))}</div>`
+          : html`<span style="white-space: pre-wrap;">${message.text}</span>`}
+      </div>
     </div>
   `;
 }
@@ -41,20 +60,30 @@ export function renderAgentChatSurface(props: AgentChatSurfaceProps) {
     }
   };
   return html`
-    <section class="card" style="display: flex; flex-direction: column; min-height: 360px;">
-      <div>
-        <div class="card-title">${props.title}</div>
-        <div class="card-sub">${props.subtitle}</div>
+    <section class="card agent-chat">
+      <div class="agent-chat__header">
+        <div>
+          <div class="card-title">${props.title}</div>
+          <div class="card-sub">${props.subtitle}</div>
+        </div>
       </div>
-      <div class="list" style="flex: 1; margin-top: 16px; overflow-y: auto;">
-        ${props.messages.length === 0
-          ? html`<div class="muted">${props.emptyHint}</div>`
+      <div class="agent-chat__scroll">
+        ${props.messages.length === 0 && !props.busy
+          ? html`<div class="agent-chat__empty muted">${props.emptyHint}</div>`
           : props.messages.map(renderMessage)}
+        ${props.busy
+          ? html`
+              <div class="agent-chat-row agent-chat-row--assistant">
+                <div class="agent-chat-bubble agent-chat-bubble--typing" aria-label="Thinking">
+                  <span></span><span></span><span></span>
+                </div>
+              </div>
+            `
+          : nothing}
       </div>
-      <div class="row" style="margin-top: 12px; gap: 8px; align-items: flex-end;">
+      <div class="agent-chat__composer">
         <textarea
           class="input"
-          style="flex: 1; resize: vertical; min-height: 44px;"
           rows="2"
           placeholder=${props.placeholder}
           .value=${props.draft}
@@ -64,9 +93,11 @@ export function renderAgentChatSurface(props: AgentChatSurfaceProps) {
         ></textarea>
         <button class="btn primary" ?disabled=${!canSend} @click=${props.onSend}>Send</button>
       </div>
-      ${props.sendDisabled
-        ? html`<div class="muted" style="margin-top: 6px;">Sending…</div>`
-        : nothing}
     </section>
   `;
+}
+
+/** Views call this after appending messages so the transcript stays pinned. */
+export function pinAgentChatToBottom(root: ParentNode | null | undefined) {
+  autoScroll(root?.querySelector(".agent-chat__scroll") ?? undefined);
 }

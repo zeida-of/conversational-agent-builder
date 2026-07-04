@@ -570,17 +570,17 @@
     },
     {
       "count": 1,
-      "kind": "html-text",
-      "name": "text",
+      "kind": "html-attribute",
+      "name": "aria-label",
       "path": "ui/src/ui/views/agent-chat-surface.ts",
-      "text": "Send"
+      "text": "Thinking"
     },
     {
       "count": 1,
       "kind": "html-text",
       "name": "text",
       "path": "ui/src/ui/views/agent-chat-surface.ts",
-      "text": "Sending…"
+      "text": "Send"
     },
     {
       "count": 1,
@@ -615,7 +615,7 @@
       "kind": "html-text",
       "name": "text",
       "path": "ui/src/ui/views/agent-preview.ts",
-      "text": "Deployed version"
+      "text": "Deployed spec version"
     },
     {
       "count": 1,
@@ -629,14 +629,14 @@
       "kind": "html-text",
       "name": "text",
       "path": "ui/src/ui/views/agent-preview.ts",
-      "text": "No agent selected."
+      "text": "In-cluster endpoint"
     },
     {
       "count": 1,
       "kind": "html-text",
       "name": "text",
       "path": "ui/src/ui/views/agent-preview.ts",
-      "text": "not connected"
+      "text": "No agent selected."
     },
     {
       "count": 1,
@@ -668,13 +668,6 @@
     },
     {
       "count": 1,
-      "kind": "html-text",
-      "name": "text",
-      "path": "ui/src/ui/views/agent-preview.ts",
-      "text": "Unknown — deployment status API not wired yet."
-    },
-    {
-      "count": 1,
       "kind": "object-property",
       "name": "placeholder",
       "path": "ui/src/ui/views/agent-preview.ts",
@@ -685,14 +678,7 @@
       "kind": "object-property",
       "name": "subtitle",
       "path": "ui/src/ui/views/agent-preview.ts",
-      "text": "Messages go to the deployed Kagenti agent."
-    },
-    {
-      "count": 1,
-      "kind": "html-text",
-      "name": "text",
-      "path": "ui/src/ui/views/agent-spec-panel.ts",
-      "text": "Canonical AgentSpec edited by the builder."
+      "text": "Live chat with the deployed agent running in Kagenti."
     },
     {
       "count": 1,
@@ -707,6 +693,13 @@
       "name": "text",
       "path": "ui/src/ui/views/agent-spec-panel.ts",
       "text": "Draft agent"
+    },
+    {
+      "count": 1,
+      "kind": "html-text",
+      "name": "text",
+      "path": "ui/src/ui/views/agent-spec-panel.ts",
+      "text": "Everything the builder has configured so far."
     },
     {
       "count": 1,

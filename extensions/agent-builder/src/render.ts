@@ -2,7 +2,7 @@
 // This is the only place specs become cluster objects: fixed safe templates,
 // catalog-checked references, namespace allowlist, no privileged settings.
 import type { AgentSpec } from "@openclaw/agent-spec";
-import { findKnowledgePack, findToolCatalogEntry } from "./catalog.ts";
+import { findKnowledgePack, type ToolCatalogEntry } from "./catalog.ts";
 
 export const AGENT_RUNTIME_IMAGE = "agent-builder/agent-runtime:dev";
 // Generated agents are confined to the namespace the adapter has RBAC for.
@@ -34,7 +34,10 @@ function agentLabels(spec: AgentSpec): Record<string, string> {
   };
 }
 
-export function renderAgentResources(spec: AgentSpec): RenderResult {
+export function renderAgentResources(
+  spec: AgentSpec,
+  toolCatalog: ToolCatalogEntry[],
+): RenderResult {
   const errors: string[] = [];
   const namespace = spec.agent.deployment.namespace;
   if (!ALLOWED_NAMESPACES.includes(namespace)) {
@@ -44,9 +47,12 @@ export function renderAgentResources(spec: AgentSpec): RenderResult {
   }
   const mcpServers: { name: string; url: string }[] = [];
   for (const tool of spec.agent.tools) {
-    const entry = findToolCatalogEntry(tool.serverRef);
+    const entry = toolCatalog.find((candidate) => candidate.serverRef === tool.serverRef);
     if (!entry) {
-      errors.push(`tool serverRef "${tool.serverRef}" is not in the tool catalog`);
+      const available = toolCatalog.map((candidate) => candidate.serverRef).join(", ") || "none";
+      errors.push(
+        `tool serverRef "${tool.serverRef}" is not an available connector (available: ${available})`,
+      );
       continue;
     }
     if (!mcpServers.some((server) => server.name === entry.serverRef)) {

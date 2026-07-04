@@ -12,7 +12,11 @@ import { extractText } from "../chat/message-extract.ts";
 import type { ChatEventPayload } from "../controllers/chat.ts";
 import type { GatewayBrowserClient } from "../gateway.ts";
 import { pathForAgentPreview } from "../navigation.ts";
-import { renderAgentChatSurface, type AgentChatMessage } from "./agent-chat-surface.ts";
+import {
+  pinAgentChatToBottom,
+  renderAgentChatSurface,
+  type AgentChatMessage,
+} from "./agent-chat-surface.ts";
 import { renderAgentSpecPanel } from "./agent-spec-panel.ts";
 
 export const AGENT_BUILDER_AGENT_ID = "agent_builder";
@@ -116,6 +120,7 @@ export function handleAgentBuilderChatEvent(
     state.busy = false;
   }
   requestUpdate?.();
+  pinAgentChatToBottom(document);
 }
 
 async function sendBuilderMessage(
@@ -128,6 +133,7 @@ async function sendBuilderMessage(
   state.busy = true;
   state.streamText = "";
   requestUpdate?.();
+  pinAgentChatToBottom(document);
   try {
     await client.request("chat.send", {
       sessionKey: AGENT_BUILDER_SESSION_KEY,
@@ -218,8 +224,8 @@ export function renderAgentBuilder(props: AgentBuilderProps) {
     ? [...state.messages, { role: "assistant", text: state.streamText }]
     : state.messages;
   return html`
-    <div class="row" style="align-items: stretch; gap: 16px; flex-wrap: wrap;">
-      <div style="flex: 2 1 420px; min-width: 320px;">
+    <div class="agent-builder-layout">
+      <div class="agent-builder-layout__chat">
         ${renderAgentChatSurface({
           title: "Builder chat",
           subtitle: "Describe the agent you want; the builder edits the draft spec.",
@@ -229,6 +235,7 @@ export function renderAgentBuilder(props: AgentBuilderProps) {
             : "Connect to the gateway to start building.",
           messages,
           draft: state.draft,
+          busy: state.busy && !state.streamText,
           sendDisabled: state.busy || !props.connected || !props.client,
           onDraftChange: (next) => {
             state.draft = next;
@@ -244,7 +251,7 @@ export function renderAgentBuilder(props: AgentBuilderProps) {
           },
         })}
       </div>
-      <div style="flex: 1 1 280px; min-width: 260px;">
+      <div class="agent-builder-layout__panel">
         ${state.panel
           ? renderAgentSpecPanel({
               spec: state.panel.draftSpec,

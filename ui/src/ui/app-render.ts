@@ -4194,6 +4194,8 @@ export function renderApp(state: AppViewState) {
                 typeof window === "undefined"
                   ? null
                   : agentIdFromAgentPreviewPath(window.location.pathname, state.basePath),
+              client: state.client,
+              connected: state.connected,
               basePath: state.basePath,
               requestUpdate: requestHostUpdate,
             })

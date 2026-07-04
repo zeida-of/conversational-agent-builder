@@ -1,6 +1,5 @@
 // Side panel showing the current draft AgentSpec, validation state, and
-// deployment status. Shared by the agent-builder page (and later the preview
-// page once deployment metadata is live).
+// deployment status. Shared by the agent-builder page.
 import type {
   AgentDeploymentStatus,
   AgentSpec,
@@ -17,19 +16,23 @@ export type AgentSpecPanelProps = {
   deployBusy?: boolean;
 };
 
-function renderField(label: string, value: string) {
+function renderField(label: string, value: unknown) {
   return html`
-    <div style="margin-top: 10px;">
-      <div class="muted" style="font-size: 12px;">${label}</div>
+    <div class="agent-panel-field">
+      <div class="agent-panel-field__label">${label}</div>
       <div>${value}</div>
     </div>
   `;
 }
 
+export function renderStatusPill(status: string) {
+  return html`<span class="agent-status-pill agent-status-pill--${status}">${status}</span>`;
+}
+
 function renderValidation(validation: AgentSpecValidationResult) {
   if (validation.ok) {
     return html`
-      <div class="callout success" style="margin-top: 12px;">Spec is valid.</div>
+      <div class="callout success" style="margin-top: 8px;">Spec is valid.</div>
       ${validation.warnings.map(
         (warning) => html`
           <div class="callout warning" style="margin-top: 8px;">
@@ -59,46 +62,44 @@ export function renderAgentSpecPanel(props: AgentSpecPanelProps) {
   return html`
     <section class="card">
       <div class="card-title">Draft agent</div>
-      <div class="card-sub">Canonical AgentSpec edited by the builder.</div>
-      ${renderField("Name", agent.name)} ${renderField("ID", agent.id)}
+      <div class="card-sub">Everything the builder has configured so far.</div>
+      ${renderField("Name", agent.name)}
+      ${renderField("ID", html`<span class="mono">${agent.id}</span>`)}
       ${renderField("Description", agent.description)} ${renderField("Model", model)}
-      <div style="margin-top: 10px;">
-        <div class="muted" style="font-size: 12px;">System prompt</div>
+      <div class="agent-panel-field">
+        <div class="agent-panel-field__label">System prompt</div>
         <div style="white-space: pre-wrap; font-size: 13px;">${agent.systemPrompt}</div>
       </div>
-      <div style="margin-top: 10px;">
-        <div class="muted" style="font-size: 12px;">Tools</div>
+      <div class="agent-panel-field">
+        <div class="agent-panel-field__label">Tools</div>
         ${agent.tools.length === 0
           ? html`<div class="muted">No tools attached.</div>`
           : agent.tools.map(
               (tool) => html`
                 <div>
-                  <span class="mono">${tool.name}</span> (${tool.type}:${tool.serverRef},
-                  ${tool.permissions.mode})
+                  <span class="mono">${tool.serverRef}</span>
+                  <span class="muted"> · ${tool.permissions.mode}</span>
                 </div>
               `,
             )}
       </div>
-      <div style="margin-top: 10px;">
-        <div class="muted" style="font-size: 12px;">Knowledge</div>
+      <div class="agent-panel-field">
+        <div class="agent-panel-field__label">Knowledge</div>
         ${agent.knowledge.length === 0
           ? html`<div class="muted">No knowledge packs attached.</div>`
           : agent.knowledge.map((item) => html`<div class="mono">${item.packRef}</div>`)}
       </div>
-      ${renderField(
-        "Deployment target",
-        `${agent.runtime.platform}/${agent.runtime.protocol}, namespace ${agent.deployment.namespace}, ${agent.deployment.replicas} replica(s)`,
-      )}
-      <div style="margin-top: 14px;">
-        <div class="muted" style="font-size: 12px;">Validation</div>
+      ${renderField("Memory", agent.memory.enabled ? "Remembers conversations" : "Off")}
+      <div class="agent-panel-field">
+        <div class="agent-panel-field__label">Validation</div>
         ${renderValidation(props.validation)}
       </div>
-      <div style="margin-top: 14px;">
-        <div class="muted" style="font-size: 12px;">Deployment</div>
-        <div><span class="pill">${props.deployment.status}</span></div>
-        <div class="muted" style="margin-top: 4px;">${props.deployment.detail}</div>
+      <div class="agent-panel-field">
+        <div class="agent-panel-field__label">Deployment</div>
+        <div>${renderStatusPill(props.deployment.status)}</div>
+        <div class="muted" style="margin-top: 6px;">${props.deployment.detail}</div>
       </div>
-      <div class="row" style="margin-top: 14px; gap: 8px; flex-wrap: wrap;">
+      <div class="row" style="margin-top: 16px; gap: 8px; flex-wrap: wrap;">
         ${props.onDeploy
           ? html`
               <button
