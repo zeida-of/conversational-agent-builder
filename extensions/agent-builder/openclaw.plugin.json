@@ -5,6 +5,11 @@
   },
   "name": "Agent Builder",
   "description": "Conversational agent builder: constrained tools that edit the canonical AgentSpec for Kagenti-deployed agents.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
   "contracts": {
     "tools": [
       "get_current_agent_spec",
